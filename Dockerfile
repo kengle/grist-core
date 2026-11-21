@@ -21,6 +21,7 @@ ENV GRIST_SKIP_EXT_AUTOSETUP=1
 
 COPY package.json yarn.lock /grist/
 COPY buildtools/install_edition.sh /grist/buildtools/install_edition.sh
+RUN sed -i -e 's|https://registry.yarnpkg.com|https://registry.npmmirror.com|g' -e 's|https://registry.npmjs.org|https://registry.npmmirror.com|g' yarn.lock
 RUN \
   yarn install --prod --frozen-lockfile --verbose --network-timeout 600000
 
@@ -29,6 +30,7 @@ FROM prod-builder AS builder
 # Create node_modules with devDependencies to be able to build the app
 # Add at global level gyp deps to build sqlite3 for prod
 # then create node_modules_prod that will be the node_modules of final image
+RUN sed -i -e 's|https://registry.yarnpkg.com|https://registry.npmmirror.com|g' -e 's|https://registry.npmjs.org|https://registry.npmmirror.com|g' yarn.lock
 RUN \
   yarn install --frozen-lockfile --verbose --network-timeout 600000
 
@@ -38,7 +40,7 @@ COPY --from=ext / /grist/ext
 RUN \
  mkdir /node_modules && \
  cd /grist/ext && \
- { if [ -e package.json ] ; then yarn install --frozen-lockfile --modules-folder=/node_modules --verbose --network-timeout 600000 ; fi }
+ { if [ -e package.json ] ; then sed -i -e 's|https://registry.yarnpkg.com|https://registry.npmmirror.com|g' -e 's|https://registry.npmjs.org|https://registry.npmmirror.com|g' yarn.lock 2>/dev/null || true; yarn install --frozen-lockfile --modules-folder=/node_modules --verbose --network-timeout 600000 ; fi }
 
 # Build node code.
 COPY tsconfig.json /grist

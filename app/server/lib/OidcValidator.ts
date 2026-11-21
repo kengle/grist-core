@@ -184,7 +184,12 @@ export class OidcValidator implements IOAuthValidator {
     if (this._fetching) { return await this._fetching; }
     this._fetching = (async () => {
       try {
-        const resp = await fetch(this._options.jwksUrl);
+        const resp = await fetch(this._options.jwksUrl, {
+          // An identity provider mounted under a path behind a reverse proxy derives its
+          // issuer from forwarding headers, and rejects a plain internal fetch that
+          // carries none (Authelia answers 400 "invalid X-Forwarded-Proto header value").
+          headers: this._issuerForwardingHeaders(),
+        });
         if (!resp.ok) { throw new Error(`JWKS fetch failed: ${resp.status}`); }
         const body = await resp.json() as { keys?: Jwk[] };
         const keys = new Map<string, KeyObject>();
@@ -203,6 +208,22 @@ export class OidcValidator implements IOAuthValidator {
       }
     })();
     return await this._fetching;
+  }
+
+  /**
+   * Headers describing the public issuer, so that a JWKS endpoint reachable only on the
+   * internal network still recognises the request. Undici honours the Host header.
+   */
+  private _issuerForwardingHeaders(): Record<string, string> {
+    const issuer = new URL(this._options.issuer);
+    const proto = issuer.protocol.replace(":", "");
+    const host = issuer.host;
+    return {
+      Host: host,
+      "X-Forwarded-Proto": proto,
+      "X-Forwarded-Host": host,
+      "X-Forwarded-Uri": this._options.jwksUrl,
+    };
   }
 }
 

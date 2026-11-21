@@ -306,14 +306,16 @@ export async function resolveIdentity(
   }
 
   // OAuth access token (Bearer header).
-  const oauthCredentialPromise = options.gristServer.getOAuthValidator()?.getCredential(req);
-  if (oauthCredentialPromise) {
+  // A validator returns undefined when the credential is not its business (no token,
+  // bad signature, unknown issuer, ...), so the request may continue down the chain.
+  const oauthCredential = await options.gristServer.getOAuthValidator()?.getCredential(req);
+  if (oauthCredential) {
     // OAuth tokens don't set a userId to avoid authenticating across all endpoints by default.
     // Instead, they get a restricted credential. See AuthCredential.ts for how to elevate access
     // safely from anonymous to the real user.
     return {
       user: dbManager.getAnonymousUser(),
-      credential: await oauthCredentialPromise,
+      credential: oauthCredential,
       hasApiKey: true,      // Treat oauth as API requests for purposes of throttling and logging.
       explicitAuth: true,
     };

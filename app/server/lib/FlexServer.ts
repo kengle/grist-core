@@ -73,6 +73,7 @@ import { EmitNotifier, INotifier } from "app/server/lib/INotifier";
 import { InstallAdmin } from "app/server/lib/InstallAdmin";
 import { IOAuthValidator } from "app/server/lib/IOAuthValidator";
 import { IWebSocketProxy } from "app/server/lib/IWebSocketProxy";
+import { createOidcValidator } from "app/server/lib/OidcValidator";
 import log, { logAsJson, metaField } from "app/server/lib/log";
 import { disableCache, noop } from "app/server/lib/middleware";
 import { testSandboxFlavor } from "app/server/lib/NSandbox";
@@ -545,7 +546,10 @@ export class FlexServer implements GristServer {
     if (this._oauthValidator === false) {
       // The special value of 'false' is used to create only on first call. Afterwards,
       // the value may be undefined, but no longer false.
-      this._oauthValidator = this.create.createOAuthValidator(this);
+      // An edition may provide its own validator. Failing that, an external identity
+      // provider can be configured with GRIST_OIDC_*, in which case JWTs are accepted
+      // as API credentials. With neither, this stays undefined and nothing changes.
+      this._oauthValidator = this.create.createOAuthValidator(this) ?? createOidcValidator(this);
     }
     return this._oauthValidator;
   }

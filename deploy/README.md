@@ -4,7 +4,6 @@ Caddy is the only public entry; Authelia does single sign-on with forward auth; 
 to the bridge, which forwards only `Authorization` and leaves permissions to Grist.
 
 Prerequisites: Docker + Compose, a host name (DNS A record, or Caddy's self-signed CA), ports 8080/443.
-
 1. `cp grist.env.example grist.env` and `cp authelia/users_database.example.yml authelia/users_database.yml`
 2. Fill the secrets: `grist.env`, `authelia/users_database.yml`, and every `<REPLACE_WITH_...>` in
    `authelia/configuration.yml` (session, storage key, OIDC HMAC, JWKS key, client secret).
@@ -18,3 +17,4 @@ Traps we hit — keep them in mind:
 - The `grist-mcp` client secret must be hex: base64 may contain `+`, which breaks the Basic auth header.
 - In the container the JWKS must be `http://authelia:9091/authelia/jwks.json`: the Grist container does not
   trust Caddy's self-signed CA.
+More detail: `DEPLOYMENT.md` (what runs here, step by step) and `LAN-DEPLOY.md` (two ways to reach a LAN).

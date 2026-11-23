@@ -1,0 +1,95 @@
+---
+# Authelia as the OpenID Connect provider and the forward-auth portal for this deployment.
+# Replace every <REPLACE_WITH_...> value; see README.md for how they are generated.
+theme: 'auto'
+server:
+  # Mounted under a path; Caddy keeps the /authelia prefix when proxying.
+  address: 'tcp://0.0.0.0:9091/authelia'
+
+log:
+  level: 'info'
+
+totp:
+  issuer: 'grist'
+
+identity_validation:
+  reset_password:
+    jwt_secret: '<REPLACE_WITH_HEX_32_BYTES>'
+
+authentication_backend:
+  file:
+    path: '/config/users_database.yml'
+    password:
+      algorithm: 'argon2'
+
+access_control:
+  default_policy: 'one_factor'
+
+session:
+  name: 'grist_session'
+  secret: '<REPLACE_WITH_HEX_32_BYTES>'
+  expiration: '1h'
+  cookies:
+    - domain: 'grist.example.com'
+      authelia_url: 'https://grist.example.com:8080/authelia'
+      default_redirection_url: 'https://grist.example.com:8080'
+
+storage:
+  encryption_key: '<REPLACE_WITH_HEX_24_BYTES>'
+  local:
+    path: '/config/db.sqlite3'
+
+notifier:
+  filesystem:
+    filename: '/config/notifications.txt'
+
+identity_providers:
+  oidc:
+    # The key is authorize_code, NOT authorization_code; the latter stops startup.
+    lifespans:
+      access_token: '24h'
+      id_token: '24h'
+      refresh_token: '30d'
+      authorize_code: '5m'
+    hmac_secret: '<REPLACE_WITH_HEX_32_BYTES>'
+    jwks:
+      - key_id: 'grist-mcp'
+        algorithm: 'RS256'
+        use: 'sig'
+        key: |
+          <REPLACE_WITH_RSA_PRIVATE_KEY_PEM>
+    # Grist verifies access tokens with these; every claim below must stay in place.
+    claims_policies:
+      grist:
+        id_token:
+          - 'email'
+        access_token:
+          - 'email'
+    clients:
+      - client_id: 'grist-mcp'
+        client_name: 'Grist MCP'
+        # Hex only: base64 may contain '+', which breaks the Basic auth header.
+        client_secret: '<REPLACE_WITH_HEX_32_BYTES>'
+        public: false
+        authorization_policy: 'one_factor'
+        consent_mode: 'pre-configured'
+        pre_configured_consent_duration: '1M'
+        claims_policy: 'grist'
+        token_endpoint_auth_method: 'client_secret_basic'
+        access_token_signed_response_alg: 'RS256'
+        audience:
+          - 'grist-mcp'
+          - 'https://grist.example.com:8080'
+        requested_audience_mode: 'implicit'
+        redirect_uris:
+          - 'http://127.0.0.1:9999/callback'
+        response_types:
+          - 'code'
+        grant_types:
+          - 'authorization_code'
+          - 'refresh_token'
+        scopes:
+          - 'openid'
+          - 'email'
+          - 'profile'
+          - 'offline_access'

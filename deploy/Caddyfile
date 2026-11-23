@@ -1,0 +1,27 @@
+https://grist.example.com:8080 {
+	tls internal
+
+	# Authelia portal: must stay unauthenticated, or the login page loops.
+	handle /authelia* {
+		reverse_proxy authelia:9091
+	}
+	# The MCP bridge answers its own 401 and serves its metadata document.
+	handle /mcp* {
+		reverse_proxy grist:8765
+	}
+	handle /.well-known/oauth-protected-resource {
+		reverse_proxy grist:8765
+	}
+	# Everything else is a browser path behind Authelia.
+	handle {
+		forward_auth authelia:9091 {
+			uri /authelia/api/authz/forward-auth
+			copy_headers Remote-User Remote-Email Remote-Groups
+		}
+		reverse_proxy grist:8484 {
+			header_up Host {http.request.hostport}
+			header_up X-Forwarded-Proto {scheme}
+			header_up X-Forwarded-Host {http.request.hostport}
+		}
+	}
+}

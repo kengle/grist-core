@@ -1,0 +1,37 @@
+---
+# Caddy is the only public entry. Grist and the MCP bridge share one container.
+services:
+  authelia:
+    image: 'authelia/authelia:latest'
+    restart: 'unless-stopped'
+    volumes:
+      - './authelia:/config'
+
+  grist:
+    # Build from the repository root, or set GRIST_IMAGE to a published image.
+    image: '${GRIST_IMAGE:-grist-merged:local}'
+    build:
+      context: '..'
+      dockerfile: 'Dockerfile'
+      args:
+        BUILD_PYODIDE_SANDBOX: '0'
+    restart: 'unless-stopped'
+    env_file:
+      - './grist.env'
+    volumes:
+      - '../data:/persist'
+
+  caddy:
+    image: 'caddy:2'
+    restart: 'unless-stopped'
+    depends_on:
+      - 'authelia'
+      - 'grist'
+    ports:
+      - '127.0.0.1:8080:8080'
+    volumes:
+      - './Caddyfile:/etc/caddy/Caddyfile:ro'
+      - 'caddy-data:/data'
+
+volumes:
+  caddy-data:

@@ -21,6 +21,7 @@ ENV GRIST_SKIP_EXT_AUTOSETUP=1
 
 COPY package.json yarn.lock /grist/
 COPY buildtools/install_edition.sh /grist/buildtools/install_edition.sh
+RUN sed -i -e 's|https://registry.yarnpkg.com|https://registry.npmmirror.com|g' -e 's|https://registry.npmjs.org|https://registry.npmmirror.com|g' yarn.lock
 RUN \
   yarn install --prod --frozen-lockfile --verbose --network-timeout 600000
 
@@ -29,6 +30,7 @@ FROM prod-builder AS builder
 # Create node_modules with devDependencies to be able to build the app
 # Add at global level gyp deps to build sqlite3 for prod
 # then create node_modules_prod that will be the node_modules of final image
+RUN sed -i -e 's|https://registry.yarnpkg.com|https://registry.npmmirror.com|g' -e 's|https://registry.npmjs.org|https://registry.npmmirror.com|g' yarn.lock
 RUN \
   yarn install --frozen-lockfile --verbose --network-timeout 600000
 
@@ -38,7 +40,7 @@ COPY --from=ext / /grist/ext
 RUN \
  mkdir /node_modules && \
  cd /grist/ext && \
- { if [ -e package.json ] ; then yarn install --frozen-lockfile --modules-folder=/node_modules --verbose --network-timeout 600000 ; fi }
+ { if [ -e package.json ] ; then sed -i -e 's|https://registry.yarnpkg.com|https://registry.npmmirror.com|g' -e 's|https://registry.npmjs.org|https://registry.npmmirror.com|g' yarn.lock 2>/dev/null || true; yarn install --frozen-lockfile --modules-folder=/node_modules --verbose --network-timeout 600000 ; fi }
 
 # Build node code.
 COPY tsconfig.json /grist
@@ -63,8 +65,25 @@ RUN rm -rf /grist/assets
 # Prepare material for optional pyodide sandbox
 COPY sandbox/pyodide /grist/sandbox/pyodide
 COPY sandbox/requirements.txt /grist/sandbox/requirements.txt
-RUN \
-  cd /grist/sandbox/pyodide && make setup
+# The pyodide data-engine sandbox is optional and only needed when
+# GRIST_SANDBOX_FLAVOR=pyodide. Building it downloads a large package set from S3,
+# which is slow or unreachable on some networks; pass 0 to skip it.
+ARG BUILD_PYODIDE_SANDBOX=1
+RUN if [ "$BUILD_PYODIDE_SANDBOX" = "1" ]; then \
+      cd /grist/sandbox/pyodide && make setup; \
+    fi
+
+################################################################################
+## MCP bridge (a separate package with its own lockfile: apps/mcp-bridge)
+################################################################################
+
+FROM node:22-trixie AS mcp-builder
+WORKDIR /bridge
+COPY apps/mcp-bridge/package.json apps/mcp-bridge/package-lock.json ./
+RUN npm ci --registry https://registry.npmmirror.com --no-audit --no-fund
+COPY apps/mcp-bridge/tsconfig.json ./
+COPY apps/mcp-bridge/src ./src
+RUN npm run build && npm prune --omit=dev --registry https://registry.npmmirror.com
 
 ################################################################################
 ## Python collection stage
@@ -72,6 +91,7 @@ RUN \
 
 # Fetch python3.11
 FROM python:3.11-slim-trixie AS collector-py3
+ENV PIP_INDEX_URL=https://pypi.tuna.tsinghua.edu.cn/simple
 COPY sandbox/requirements.txt requirements.txt
 RUN \
   pip3 install -r requirements.txt
@@ -99,6 +119,11 @@ FROM node:22-trixie-slim
 
 ARG GRIST_ALLOW_AUTOMATIC_VERSION_CHECKING=false
 ARG GRIST_EXT_FULL_EDITION_BASE_URL=https://grist-static.com/grist-full-edition
+
+# Use a reachable apt mirror. Debian trixie images use deb822 .sources files,
+# older ones use sources.list; the sed covers both and tolerates either being absent.
+RUN sed -i 's|deb.debian.org|mirrors.tuna.tsinghua.edu.cn|g; s|security.debian.org|mirrors.tuna.tsinghua.edu.cn|g' \
+    /etc/apt/sources.list /etc/apt/sources.list.d/*.sources 2>/dev/null || true
 
 # Install curl for docker healthchecks, libexpat1 and libsqlite3-0 for python3
 # library binary dependencies, and procps for managing gvisor processes.
@@ -202,5 +227,12 @@ EXPOSE 8484
 #   cli sqlite query $PWD/docs/4gtUhAEGbGAdsGNc52k4H6.grist \
 #  --json "select * from _gristsys_ActionHistory"
 
+COPY --from=mcp-builder /bridge/dist /grist/apps/mcp-bridge/dist
+COPY --from=mcp-builder /bridge/node_modules /grist/apps/mcp-bridge/node_modules
+COPY apps/mcp-bridge/package.json /grist/apps/mcp-bridge/package.json
+COPY docker/entrypoint-two.sh /grist/docker/entrypoint-two.sh
+RUN chmod +x /grist/docker/entrypoint-two.sh
+
 ENTRYPOINT ["./sandbox/docker_entrypoint.sh"]
-CMD ["./sandbox/run.sh"]
+# One image, two processes: Grist and the MCP bridge (see docker/entrypoint-two.sh).
+CMD ["./docker/entrypoint-two.sh"]

@@ -310,11 +310,12 @@ export async function resolveIdentity(
   // bad signature, unknown issuer, ...), so the request may continue down the chain.
   const oauthCredential = await options.gristServer.getOAuthValidator()?.getCredential(req);
   if (oauthCredential) {
-    // OAuth tokens don't set a userId to avoid authenticating across all endpoints by default.
-    // Instead, they get a restricted credential. See AuthCredential.ts for how to elevate access
-    // safely from anonymous to the real user.
+    // The token stands for the user it identifies: it acts as that user, exactly as an API key
+    // does. The credential is still attached, since it can narrow access (e.g. to one document).
+    const user = await dbManager.getUser(oauthCredential.identifiedUser.id);
+    if (!user) { throw new ApiError("Bad request: unknown user for token", 401); }
     return {
-      user: dbManager.getAnonymousUser(),
+      user,
       credential: oauthCredential,
       hasApiKey: true,      // Treat oauth as API requests for purposes of throttling and logging.
       explicitAuth: true,

@@ -74,6 +74,18 @@ RUN if [ "$BUILD_PYODIDE_SANDBOX" = "1" ]; then \
     fi
 
 ################################################################################
+## MCP bridge (a separate package with its own lockfile: apps/mcp-bridge)
+################################################################################
+
+FROM node:22-trixie AS mcp-builder
+WORKDIR /bridge
+COPY apps/mcp-bridge/package.json apps/mcp-bridge/package-lock.json ./
+RUN npm ci --registry https://registry.npmmirror.com --no-audit --no-fund
+COPY apps/mcp-bridge/tsconfig.json ./
+COPY apps/mcp-bridge/src ./src
+RUN npm run build && npm prune --omit=dev --registry https://registry.npmmirror.com
+
+################################################################################
 ## Python collection stage
 ################################################################################
 
@@ -215,5 +227,12 @@ EXPOSE 8484
 #   cli sqlite query $PWD/docs/4gtUhAEGbGAdsGNc52k4H6.grist \
 #  --json "select * from _gristsys_ActionHistory"
 
+COPY --from=mcp-builder /bridge/dist /grist/apps/mcp-bridge/dist
+COPY --from=mcp-builder /bridge/node_modules /grist/apps/mcp-bridge/node_modules
+COPY apps/mcp-bridge/package.json /grist/apps/mcp-bridge/package.json
+COPY docker/entrypoint-two.sh /grist/docker/entrypoint-two.sh
+RUN chmod +x /grist/docker/entrypoint-two.sh
+
 ENTRYPOINT ["./sandbox/docker_entrypoint.sh"]
-CMD ["./sandbox/run.sh"]
+# One image, two processes: Grist and the MCP bridge (see docker/entrypoint-two.sh).
+CMD ["./docker/entrypoint-two.sh"]

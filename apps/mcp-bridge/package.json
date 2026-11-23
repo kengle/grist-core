@@ -1,0 +1,20 @@
+{
+  "name": "grist-mcp-ts",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "MCP bridge for the Grist REST API (TypeScript)",
+  "scripts": {
+    "build": "tsc",
+    "typecheck": "tsc --noEmit",
+    "start": "node dist/server.js"
+  },
+  "dependencies": {
+    "@prefecthq/fastmcp-ts": "1.14.0",
+    "zod": "^3.25.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.0",
+    "@types/node": "^24.0.0"
+  }
+}

@@ -2,7 +2,7 @@
 # Caddy is the only public entry. Grist and the MCP bridge share one container.
 services:
   authelia:
-    image: 'authelia/authelia:latest'
+    image: 'authelia/authelia:4.39.28'
     restart: 'unless-stopped'
     volumes:
       - './authelia:/config'

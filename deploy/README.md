@@ -20,8 +20,10 @@ bind account with `bootstrap.sh`, then starts everything else. With a prebuilt i
 `/boot/login`. Caddy lets `/boot*` through without forward auth, the boot key being the gate.
 
 Accounts: LLDAP's own `admin` user is the directory administrator, not a Grist user - do not reuse the
-name for a person. Give at least one real person the email you passed as `ADMIN_EMAIL`, otherwise Grist's
-gate ("not yet configured") has no admin to let through.
+name for a person. `bootstrap.sh` creates `grist-admin` with the email you passed as `ADMIN_EMAIL`; its
+password is `FIRST_USER_PASSWORD` in `lldap.env`. Grist's install-admin gate compares the request user's
+login email with `GRIST_ADMIN_EMAIL` (`InstallAdmin.ts:72-75`), so the first person to sign in must use
+exactly that email.
 
 First login: open `http://127.0.0.1:17170` with `admin` (password `LLDAP_LDAP_USER_PASS` in `lldap.env`),
 create your own account and the bind account `svc-authelia` (password `SVC_AUTHELIA_PASSWORD`), put

@@ -15,7 +15,9 @@ docker compose up -d
 # grist.env holds values with spaces (GVISOR_FLAGS), so read the two keys instead of sourcing it.
 GRIST_BOOT_KEY=$(sed -n 's/^GRIST_BOOT_KEY=//p' grist.env)
 GRIST_ADMIN_EMAIL=$(sed -n 's/^GRIST_ADMIN_EMAIL=//p' grist.env)
-URL="https://$GRIST_DOMAIN:$PUBLIC_PORT"
+# 443 is implicit in an https URL; any other port has to be spelled out.
+URL="https://$GRIST_DOMAIN"
+[ "$PUBLIC_PORT" = "443" ] || URL="$URL:$PUBLIC_PORT"
 say() { printf '%s\n' "$*"; }
 
 say "waiting for Grist on $URL ..."

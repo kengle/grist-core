@@ -6,7 +6,7 @@ set -eu
 cd "$(dirname "$0")"
 
 GRIST_DOMAIN=${GRIST_DOMAIN:-grist.example.com}
-PUBLIC_PORT=${PUBLIC_PORT:-8080}
+PUBLIC_PORT=${PUBLIC_PORT:-443}
 LDAP_PORT=${LDAP_PORT:-3890}
 LLDAP_WEB_PORT=${LLDAP_WEB_PORT:-17170}
 BASE_DN=${BASE_DN:-dc=example,dc=com}
@@ -145,3 +145,21 @@ say "  3. open https://$GRIST_DOMAIN:$PUBLIC_PORT and sign in with one of those 
 say ""
 say "Back up $DATA_ROOT (documents, directory and Authelia state live there). One tar covers it all."
 say "authelia/configuration.yml and the *.env files hold secrets: keep them out of git."
+
+# Refuse to continue with configuration from another domain or port: grist.env and the
+# rendered Authelia configuration bake both into URLs, so a stale .env silently produces
+# links that point at the wrong host.
+EXPECTED_URL="https://$GRIST_DOMAIN"
+[ "$PUBLIC_PORT" = "443" ] || EXPECTED_URL="$EXPECTED_URL:$PUBLIC_PORT"
+if [ -f grist.env ]; then
+    FOUND_URL=$(sed -n 's/^APP_HOME_URL=//p' grist.env)
+    if [ "$FOUND_URL" != "$EXPECTED_URL/" ]; then
+        say ""
+        say "!!!!!!!!!!!!!!!!!!!!!!!! CONFIGURATION MISMATCH !!!!!!!!!!!!!!!!!!!!!!!!"
+        say "grist.env has APP_HOME_URL=$FOUND_URL"
+        say "this run expects APP_HOME_URL=$EXPECTED_URL/"
+        say "Delete .env, grist.env, lldap.env and state/, then run this script again."
+        say "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
+        exit 1
+    fi
+fi

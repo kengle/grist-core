@@ -24,7 +24,7 @@
 | `authelia/notifications.txt` | filesystem notifier 输出，自动生成 |
 | `authelia/.secrets/` | `session_secret`（session 加密）、`storage_key`（storage encryption_key）、`jwt_secret`（reset_password）、`user_password`（ken）、`mm_password`（mm） |
 
-Grist 数据卷：`/Users/ken/workshop/vibe/xx/grist/data:/persist`（`home.sqlite3`、`docs/`）。
+数据卷：`${DATA_ROOT:-./state}/grist:/persist`（`home.sqlite3`、`docs/`）；`state/lldap`、`state/authelia` 也在同一父目录，备份一条 `tar -czf backup.tgz -C . state` 即可。
 ## 3. `grist-local` 的完整 docker run
 
 ```bash
@@ -211,13 +211,13 @@ identity_providers:
 
 - 服务 `lldap`（镜像 `lldap/lldap:v0.6.3`），与其它服务同网络；端口只绑回环：
   `127.0.0.1:3890`（LDAP）、`127.0.0.1:17170`（Web 管理端 + GraphQL）。
-- 数据卷 `./lldap:/data`（`users.db` 是唯一权威数据，**必须进备份**）。
+- 数据卷 `${DATA_ROOT:-./state}/lldap:/data`（`users.db` 是唯一权威数据，**必须进备份**）。
 - 密钥与初始管理员密码在 `lldap.env`（600、已 gitignore）：`LLDAP_JWT_SECRET`、`LLDAP_LDAP_BASE_DN`、
   `LLDAP_LDAP_USER_PASS`、`KEN_TEMP_PASSWORD`、`MM_TEMP_PASSWORD`。
 - base DN `dc=maimang,dc=local`；用户建在 `ou=people`，组在 `ou=groups`（`admins`、`users`，`ken` 属 `admins`）。
 - 改密码：**从改文件改为网页**——打开 `http://127.0.0.1:17170` 用 `admin` 登录，在用户页设置；文件里的
   `KEN_TEMP_PASSWORD`／`MM_TEMP_PASSWORD` 只是首次设定用的临时值，可删除。
-- 备份：`./lldap`（当前约 144 KB）与 `../data` 一起纳入备份计划。
+- 备份：`state/`（含 `state/lldap`、`state/grist`、`state/authelia`）整体打一个 `tar` 即可；三份必须同批次恢复。
 - **已切换**：`authentication_backend` 用 `ldap`，bind 账号 `uid=svc-authelia,ou=people,dc=maimang,dc=local`，
   密码由环境变量 `AUTHELIA_AUTHENTICATION_BACKEND_LDAP_PASSWORD` 注入（存在 `lldap.env`，不进仓库）；
   `users_database.yml` 保留不删，回滚时把注释恢复即可。

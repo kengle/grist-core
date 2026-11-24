@@ -30,8 +30,11 @@ create your own account and the bind account `svc-authelia` (password `SVC_AUTHE
 `svc-authelia` in `lldap_strict_readonly` and yourself in `lldap_admin`. Authelia binds as `svc-authelia`,
 so it can read users and groups but change nothing.
 
-Back up `./data` (every document) and `./lldap` (every directory entry). Keep `.env`, `grist.env`,
-`lldap.env`, `authelia/configuration.yml` and `authelia/oidc_signing_key.pem` out of git.
+All persistent data sits under `DATA_ROOT` (default `./state`): `state/grist` (documents and
+`home.sqlite3`), `state/lldap` (directory), `state/authelia` (its database and keys). Back up with one
+archive, `tar -czf backup.tgz -C . state`; point `DATA_ROOT` elsewhere to move it. Restoring the three
+directories separately is unsafe: `home.sqlite3`, `users.db` and the documents must come from the same
+batch. Keep `.env`, `grist.env`, `lldap.env` out of git (they hold secrets).
 
 Upgrading: `git fetch origin && git checkout umain && git merge --ff-only origin/main && git checkout main
 && git merge umain`, then `docker compose up -d --build`; `deploy/` holds configuration only.

@@ -12,6 +12,7 @@ LLDAP_WEB_PORT=${LLDAP_WEB_PORT:-17170}
 BASE_DN=${BASE_DN:-dc=example,dc=com}
 GRIST_IMAGE=${GRIST_IMAGE:-grist-merged:local}
 ADMIN_EMAIL=${ADMIN_EMAIL:-admin@example.com}
+DATA_ROOT=${DATA_ROOT:-./state}
 BOOT_KEY=${BOOT_KEY:-$(openssl rand -hex 12)}
 
 say() { printf '%s\n' "$*"; }
@@ -30,8 +31,8 @@ write_new() {
     say "created: $file"
 }
 
-mkdir -p data lldap authelia
-chmod 700 authelia 2>/dev/null || true
+mkdir -p "$DATA_ROOT/grist" "$DATA_ROOT/lldap" "$DATA_ROOT/authelia"
+chmod 700 "$DATA_ROOT/authelia" 2>/dev/null || true
 
 # Compose-level settings.
 write_new .env <<EOF
@@ -94,13 +95,13 @@ MCP_RESOURCE_URL=https://$GRIST_DOMAIN:$PUBLIC_PORT
 EOF
 
 # Authelia: render configuration.yml from the template, filling in fresh secrets.
-if [ -f authelia/configuration.yml ]; then
-    say "exists, skipped: authelia/configuration.yml"
+if [ -f "$DATA_ROOT/authelia/configuration.yml" ]; then
+    say "exists, skipped: $DATA_ROOT/authelia/configuration.yml"
 else
     # A database from an older configuration cannot be read with a freshly generated
     # encryption key; move it aside instead of letting Authelia fail at startup.
-    if [ -f authelia/db.sqlite3 ]; then
-        mv authelia/db.sqlite3 "authelia/db.sqlite3.old-$(date +%Y%m%d-%H%M%S)"
+    if [ -f "$DATA_ROOT/authelia/db.sqlite3" ]; then
+        mv "$DATA_ROOT/authelia/db.sqlite3" "$DATA_ROOT/authelia/db.sqlite3.old-$(date +%Y%m%d-%H%M%S)"
         say "moved stale authelia/db.sqlite3 aside (its storage key no longer matches)"
     fi
     JWT_SECRET=$(hex 32)
@@ -108,8 +109,8 @@ else
     STORAGE_KEY=$(hex 24)
     OIDC_HMAC=$(hex 32)
     CLIENT_SECRET=$(hex 32)
-    openssl genrsa -out authelia/oidc_signing_key.pem 2048 2>/dev/null
-    chmod 600 authelia/oidc_signing_key.pem
+    openssl genrsa -out "$DATA_ROOT/authelia/oidc_signing_key.pem" 2048 2>/dev/null
+    chmod 600 "$DATA_ROOT/authelia/oidc_signing_key.pem"
     sed \
         -e "s|__BASE_DN__|$BASE_DN|g" \
         -e "s|__GRIST_HOST__|$GRIST_DOMAIN|g" \
@@ -119,18 +120,18 @@ else
         -e "s|__STORAGE_KEY__|$STORAGE_KEY|g" \
         -e "s|__OIDC_HMAC_SECRET__|$OIDC_HMAC|g" \
         -e "s|__OIDC_CLIENT_SECRET__|$CLIENT_SECRET|g" \
-        authelia/configuration.yml.tpl > authelia/configuration.yml.tmp
+        authelia/configuration.yml.tpl > "$DATA_ROOT/authelia/configuration.yml.tmp"
     # The JWKS private key is multi-line: splice it in with awk, then drop the token line.
-    awk -v keyfile=authelia/oidc_signing_key.pem '
+    awk -v keyfile="$DATA_ROOT/authelia/oidc_signing_key.pem" '
         /^__OIDC_JWKS_KEY_PEM__$/ {
             while ((getline line < keyfile) > 0) { printf "          %s\n", line }
             next
         }
         { print }
-    ' authelia/configuration.yml.tmp > authelia/configuration.yml
-    rm -f authelia/configuration.yml.tmp
-    chmod 600 authelia/configuration.yml
-    say "created: authelia/configuration.yml"
+    ' "$DATA_ROOT/authelia/configuration.yml.tmp" > "$DATA_ROOT/authelia/configuration.yml"
+    rm -f "$DATA_ROOT/authelia/configuration.yml.tmp"
+    chmod 600 "$DATA_ROOT/authelia/configuration.yml"
+    say "created: $DATA_ROOT/authelia/configuration.yml"
 fi
 
 say ""
@@ -142,5 +143,5 @@ say "     - create the bind account 'svc-authelia' and set its password to SVC_A
 say "     - add 'svc-authelia' to the built-in group lldap_strict_readonly, and your own account to lldap_admin"
 say "  3. open https://$GRIST_DOMAIN:$PUBLIC_PORT and sign in with one of those accounts"
 say ""
-say "Back up ./data and ./lldap (they hold every document and every directory entry)."
+say "Back up $DATA_ROOT (documents, directory and Authelia state live there). One tar covers it all."
 say "authelia/configuration.yml and the *.env files hold secrets: keep them out of git."

@@ -9,3 +9,4 @@ lldap/
 configuration.yml
 oidc_signing_key.pem
 data/
+state/

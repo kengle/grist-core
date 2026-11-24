@@ -10,7 +10,7 @@ services:
       - '127.0.0.1:${LDAP_PORT:-3890}:3890'    # LDAP
       - '127.0.0.1:${LLDAP_WEB_PORT:-17170}:17170'  # web admin / GraphQL
     volumes:
-      - './lldap:/data'
+      - '${DATA_ROOT:-./state}/lldap:/data'
     healthcheck:
       test: ['CMD-SHELL', 'wget -q -O /dev/null http://127.0.0.1:17170/health || exit 1']
       interval: '15s'
@@ -24,7 +24,7 @@ services:
     env_file:
       - './lldap.env'          # supplies AUTHELIA_AUTHENTICATION_BACKEND_LDAP_PASSWORD
     volumes:
-      - './authelia:/config'
+      - '${DATA_ROOT:-./state}/authelia:/config'
 
   grist:
     # Build from the repository root, or set GRIST_IMAGE to a published image.
@@ -38,7 +38,7 @@ services:
     env_file:
       - './grist.env'
     volumes:
-      - '../data:/persist'
+      - '${DATA_ROOT:-./state}/grist:/persist'
 
   caddy:
     image: 'caddy:2'

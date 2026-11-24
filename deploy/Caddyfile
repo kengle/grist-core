@@ -1,4 +1,4 @@
-https://grist.example.com:8080 {
+{$GRIST_DOMAIN:grist.example.com} {
 	tls internal
 
 	# Authelia portal: must stay unauthenticated, or the login page loops.

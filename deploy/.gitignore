@@ -6,3 +6,6 @@ authelia/notifications.txt
 authelia/.secrets/
 lldap.env
 lldap/
+configuration.yml
+oidc_signing_key.pem
+data/

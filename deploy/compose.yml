@@ -7,8 +7,8 @@ services:
     env_file:
       - './lldap.env'
     ports:
-      - '127.0.0.1:3890:3890'    # LDAP
-      - '127.0.0.1:17170:17170'  # web admin / GraphQL
+      - '127.0.0.1:${LDAP_PORT:-3890}:3890'    # LDAP
+      - '127.0.0.1:${LLDAP_WEB_PORT:-17170}:17170'  # web admin / GraphQL
     volumes:
       - './lldap:/data'
     healthcheck:
@@ -43,11 +43,14 @@ services:
   caddy:
     image: 'caddy:2'
     restart: 'unless-stopped'
+    environment:
+      GRIST_DOMAIN: '${GRIST_DOMAIN:-grist.example.com}'
+      PUBLIC_PORT: '${PUBLIC_PORT:-8080}'
     depends_on:
       - 'authelia'
       - 'grist'
     ports:
-      - '127.0.0.1:8080:8080'
+      - '127.0.0.1:${PUBLIC_PORT:-443}:443'
     volumes:
       - './Caddyfile:/etc/caddy/Caddyfile:ro'
       - 'caddy-data:/data'

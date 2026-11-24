@@ -14,28 +14,46 @@ totp:
 
 identity_validation:
   reset_password:
-    jwt_secret: '<REPLACE_WITH_HEX_32_BYTES>'
+    jwt_secret: '__JWT_SECRET__'
 
 authentication_backend:
-  file:
-    path: '/config/users_database.yml'
-    password:
-      algorithm: 'argon2'
+  # Rollback to the file backend by restoring the block below and commenting out the ldap one.
+  # file:
+  #   path: '/config/users_database.yml'
+  #   password:
+  #     algorithm: 'argon2'
+  ldap:
+    implementation: 'custom'
+    address: 'ldap://lldap:3890'
+    start_tls: false
+    base_dn: '__BASE_DN__'
+    additional_users_dn: 'ou=people'
+    users_filter: '(&({username_attribute}={input})(objectClass=person))'
+    additional_groups_dn: 'ou=groups'
+    groups_filter: '(&(member={dn})(objectClass=groupOfNames))'
+    group_search_mode: 'filter'
+    user: 'uid=svc-authelia,ou=people,__BASE_DN__'
+    password: 'from-env'          # AUTHELIA_AUTHENTICATION_BACKEND_LDAP_PASSWORD
+    attributes:
+      username: 'uid'
+      display_name: 'cn'
+      mail: 'mail'
+      member_of: 'memberOf'
 
 access_control:
   default_policy: 'one_factor'
 
 session:
   name: 'grist_session'
-  secret: '<REPLACE_WITH_HEX_32_BYTES>'
+  secret: '__SESSION_SECRET__'
   expiration: '1h'
   cookies:
-    - domain: 'grist.example.com'
-      authelia_url: 'https://grist.example.com:8080/authelia'
-      default_redirection_url: 'https://grist.example.com:8080'
+    - domain: '__GRIST_HOST__'
+      authelia_url: 'https://__GRIST_HOST__:__GRIST_PORT__/authelia'
+      default_redirection_url: 'https://__GRIST_HOST__:__GRIST_PORT__'
 
 storage:
-  encryption_key: '<REPLACE_WITH_HEX_24_BYTES>'
+  encryption_key: '__STORAGE_KEY__'
   local:
     path: '/config/db.sqlite3'
 
@@ -51,13 +69,13 @@ identity_providers:
       id_token: '24h'
       refresh_token: '30d'
       authorize_code: '5m'
-    hmac_secret: '<REPLACE_WITH_HEX_32_BYTES>'
+    hmac_secret: '__OIDC_HMAC_SECRET__'
     jwks:
       - key_id: 'grist-mcp'
         algorithm: 'RS256'
         use: 'sig'
         key: |
-          <REPLACE_WITH_RSA_PRIVATE_KEY_PEM>
+__OIDC_JWKS_KEY_PEM__
     # Grist verifies access tokens with these; every claim below must stay in place.
     claims_policies:
       grist:
@@ -69,7 +87,7 @@ identity_providers:
       - client_id: 'grist-mcp'
         client_name: 'Grist MCP'
         # Hex only: base64 may contain '+', which breaks the Basic auth header.
-        client_secret: '<REPLACE_WITH_HEX_32_BYTES>'
+        client_secret: '__OIDC_CLIENT_SECRET__'
         public: false
         authorization_policy: 'one_factor'
         consent_mode: 'pre-configured'
@@ -79,7 +97,7 @@ identity_providers:
         access_token_signed_response_alg: 'RS256'
         audience:
           - 'grist-mcp'
-          - 'https://grist.example.com:8080'
+          - 'https://__GRIST_HOST__:__GRIST_PORT__'
         requested_audience_mode: 'implicit'
         redirect_uris:
           - 'http://127.0.0.1:9999/callback'

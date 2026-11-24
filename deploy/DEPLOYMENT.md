@@ -206,3 +206,43 @@ identity_providers:
 - 两条教训：
   1. **不要拿 PiP 的 refresh token 做手工刷新实验**——Authelia 会轮换，旧 token 立即作废，PiP 下次续期会 `invalid_grant`。
   2. `grist-local` 的环境变量现在在 `~/workshop/vibe/xx/grist-auth/grist.env`（权限 600、已 gitignore），由 compose 的 `env_file` 加载；**不要再手工 `docker run`**。
+
+## LLDAP（目录服务，尚未接管 Authelia 登录）
+
+- 服务 `lldap`（镜像 `lldap/lldap:v0.6.3`），与其它服务同网络；端口只绑回环：
+  `127.0.0.1:3890`（LDAP）、`127.0.0.1:17170`（Web 管理端 + GraphQL）。
+- 数据卷 `./lldap:/data`（`users.db` 是唯一权威数据，**必须进备份**）。
+- 密钥与初始管理员密码在 `lldap.env`（600、已 gitignore）：`LLDAP_JWT_SECRET`、`LLDAP_LDAP_BASE_DN`、
+  `LLDAP_LDAP_USER_PASS`、`KEN_TEMP_PASSWORD`、`MM_TEMP_PASSWORD`。
+- base DN `dc=maimang,dc=local`；用户建在 `ou=people`，组在 `ou=groups`（`admins`、`users`，`ken` 属 `admins`）。
+- 改密码：**从改文件改为网页**——打开 `http://127.0.0.1:17170` 用 `admin` 登录，在用户页设置；文件里的
+  `KEN_TEMP_PASSWORD`／`MM_TEMP_PASSWORD` 只是首次设定用的临时值，可删除。
+- 备份：`./lldap`（当前约 144 KB）与 `../data` 一起纳入备份计划。
+- **未切换**：Authelia 仍用 `authentication_backend.file`；切换见下节草案。
+
+### 切换到 LLDAP 时要改哪几行（草案，未启用）
+
+把 `deploy/authelia/configuration.yml` 的 `authentication_backend.file` 换成：
+
+```yaml
+authentication_backend:
+  ldap:
+    implementation: 'custom'                       # LLDAP 是标准 LDAP，不是 Active Directory
+    address: 'ldap://lldap:3890'                   # 容器内服务名
+    start_tls: false                               # 内网明文，端口不对外
+    base_dn: 'dc=maimang,dc=local'
+    additional_users_dn: 'ou=people'
+    users_filter: '(&({username_attribute}={input})(objectClass=person))'
+    additional_groups_dn: 'ou=groups'
+    groups_filter: '(&(member={dn})(objectClass=groupOfNames))'
+    group_search_mode: 'filter'
+    user: 'uid=admin,ou=people,dc=maimang,dc=local'   # 服务账号，能枚举用户与组
+    password: '<REPLACE_WITH_LLDAP_ADMIN_PASSWORD>'   # 取自 lldap.env 的 LLDAP_LDAP_USER_PASS
+    attributes:
+      username: 'uid'
+      display_name: 'cn'
+      mail: 'mail'
+      member_of: 'memberOf'
+```
+
+改完后：`docker compose up -d authelia`，确认登录页能列出用户；`file` 后端与 `users_database.yml` 可暂时保留做回滚。

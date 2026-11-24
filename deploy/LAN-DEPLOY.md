@@ -110,3 +110,10 @@ sudo security remove-trusted-cert -d /Library/Keychains/System.keychain   # macO
 rm -rf ~/workshop/vibe/xx/grist-auth      # 含 authelia/.secrets
 # rm -rf ~/workshop/vibe/xx/grist/data    # 数据卷；会删所有文档
 ```
+
+## LLDAP（局域网内目录服务）
+
+- 只监听回环，局域网机器不能直接连；需要外部访问时用 Caddy 反代 `127.0.0.1:17170`（不要暴露 3890）。
+- 端口：`127.0.0.1:3890`（LDAP）、`127.0.0.1:17170`（Web 管理端）；数据卷 `./lldap:/data`。
+- 管理员首次密码在 `lldap.env` 的 `LLDAP_LDAP_USER_PASS`；改密码改为在网页里做。
+- 备份必须包含 `./lldap`（`users.db`），与 `../data` 一起。

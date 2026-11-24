@@ -4,3 +4,5 @@ authelia/db.sqlite3
 authelia/users_database.yml
 authelia/notifications.txt
 authelia/.secrets/
+lldap.env
+lldap/

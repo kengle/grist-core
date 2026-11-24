@@ -1,6 +1,23 @@
 ---
 # Caddy is the only public entry. Grist and the MCP bridge share one container.
 services:
+  lldap:
+    image: 'lldap/lldap:v0.6.3'
+    restart: 'unless-stopped'
+    env_file:
+      - './lldap.env'
+    ports:
+      - '127.0.0.1:3890:3890'    # LDAP
+      - '127.0.0.1:17170:17170'  # web admin / GraphQL
+    volumes:
+      - './lldap:/data'
+    healthcheck:
+      test: ['CMD-SHELL', 'wget -q -O /dev/null http://127.0.0.1:17170/health || exit 1']
+      interval: '15s'
+      timeout: '5s'
+      retries: 5
+      start_period: '20s'
+
   authelia:
     image: 'authelia/authelia:4.39.28'
     restart: 'unless-stopped'

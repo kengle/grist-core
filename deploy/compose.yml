@@ -21,6 +21,8 @@ services:
   authelia:
     image: 'authelia/authelia:4.39.28'
     restart: 'unless-stopped'
+    env_file:
+      - './lldap.env'          # supplies AUTHELIA_AUTHENTICATION_BACKEND_LDAP_PASSWORD
     volumes:
       - './authelia:/config'
 

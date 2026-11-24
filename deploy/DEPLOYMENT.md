@@ -207,7 +207,7 @@ identity_providers:
   1. **不要拿 PiP 的 refresh token 做手工刷新实验**——Authelia 会轮换，旧 token 立即作废，PiP 下次续期会 `invalid_grant`。
   2. `grist-local` 的环境变量现在在 `~/workshop/vibe/xx/grist-auth/grist.env`（权限 600、已 gitignore），由 compose 的 `env_file` 加载；**不要再手工 `docker run`**。
 
-## LLDAP（目录服务，尚未接管 Authelia 登录）
+## LLDAP（目录服务，已接管 Authelia 登录）
 
 - 服务 `lldap`（镜像 `lldap/lldap:v0.6.3`），与其它服务同网络；端口只绑回环：
   `127.0.0.1:3890`（LDAP）、`127.0.0.1:17170`（Web 管理端 + GraphQL）。
@@ -218,7 +218,16 @@ identity_providers:
 - 改密码：**从改文件改为网页**——打开 `http://127.0.0.1:17170` 用 `admin` 登录，在用户页设置；文件里的
   `KEN_TEMP_PASSWORD`／`MM_TEMP_PASSWORD` 只是首次设定用的临时值，可删除。
 - 备份：`./lldap`（当前约 144 KB）与 `../data` 一起纳入备份计划。
-- **未切换**：Authelia 仍用 `authentication_backend.file`；切换见下节草案。
+- **已切换**：`authentication_backend` 用 `ldap`，bind 账号 `uid=svc-authelia,ou=people,dc=maimang,dc=local`，
+  密码由环境变量 `AUTHELIA_AUTHENTICATION_BACKEND_LDAP_PASSWORD` 注入（存在 `lldap.env`，不进仓库）；
+  `users_database.yml` 保留不删，回滚时把注释恢复即可。
+- **身份迁移（本次做过一次）**：邮箱从 `@local` 换成 `@mai-mang.com` 时，改的是 `logins.email`，user id 不变；
+  `aliases` 表是**文档 URL 别名**，不是邮箱别名，别用错表：
+  ```sql
+  UPDATE logins SET email='ken@mai-mang.com', display_email='ken@mai-mang.com' WHERE email='ken@local';
+  UPDATE logins SET email='mm@mai-mang.com',  display_email='mm@mai-mang.com'  WHERE user_id=10;  -- mm 有 maimang 权限的那个用户
+  ```
+  回滚：还原 `home.sqlite3` 备份，或把两行 `UPDATE` 反向执行。
 
 ### 切换到 LLDAP 时要改哪几行（草案，未启用）
 

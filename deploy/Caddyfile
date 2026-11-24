@@ -16,6 +16,16 @@
 	handle /boot* {
 		reverse_proxy grist:8484
 	}
+	# First visit: no Grist session yet, so bind one at /auth/login before serving the app.
+	# Every passthrough the app needs is excluded, and /auth* is never redirected, which is
+	# what keeps this from looping.
+	@needsSession {
+		header Accept *text/html*
+		not header Cookie *{$GRIST_SESSION_COOKIE:grist_core}*
+		not path /auth* /api* /boot* /authelia* /mcp* /.well-known* /assets* /v/* /static* /fonts* /favicon* /forms* /s/* /download* /attachment*
+	}
+	redir @needsSession /auth/login?next={uri} 302
+
 	# Everything else is a browser path behind Authelia.
 	handle {
 		forward_auth authelia:9091 {

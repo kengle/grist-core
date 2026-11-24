@@ -45,7 +45,11 @@ Traps we hit — keep them in mind:
   document URLs). Any other email is a new user with no access.
 - Grist's first-run gate blocks `/auth/login`, so with forward auth nobody can ever get in
   (`FlexServer.ts:766-787`; `InstallAdmin.ts:33-36`). `init.sh` sets `GRIST_IN_SERVICE=true`, which skips
-  that gate; the first browser visit must then be `/auth/login?next=/` once, so Grist binds the
-  forward-auth identity. Visiting `/` first shows you as a guest.
+  that gate.
+- Caddy sends an HTML request with no Grist session cookie (`grist_core`, `gristSessions.ts:18`) to
+  `/auth/login?next={uri}`, so signing in at Authelia is the only human step. The matcher must exclude
+  `/auth*` - redirecting it would loop - and every asset path (`/v/*`, `/assets*`, `/api*`, `/mcp*`,
+  `/boot*`, `/authelia*`, `/.well-known*`, forms and download paths), or the app's own requests would be
+  redirected. The cookie test needs wildcards: `not header Cookie *grist_core*`.
 
 Details: `DEPLOYMENT.md` (what runs here, step by step) and `LAN-DEPLOY.md` (two ways to reach a LAN).

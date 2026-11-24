@@ -12,6 +12,10 @@
 	handle /.well-known/oauth-protected-resource {
 		reverse_proxy grist:8765
 	}
+	# First-run setup: Grist's own boot key is the gate here, so no forward_auth.
+	handle /boot* {
+		reverse_proxy grist:8484
+	}
 	# Everything else is a browser path behind Authelia.
 	handle {
 		forward_auth authelia:9091 {

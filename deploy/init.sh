@@ -11,6 +11,8 @@ LDAP_PORT=${LDAP_PORT:-3890}
 LLDAP_WEB_PORT=${LLDAP_WEB_PORT:-17170}
 BASE_DN=${BASE_DN:-dc=example,dc=com}
 GRIST_IMAGE=${GRIST_IMAGE:-grist-merged:local}
+ADMIN_EMAIL=${ADMIN_EMAIL:-admin@example.com}
+BOOT_KEY=${BOOT_KEY:-$(openssl rand -hex 12)}
 
 say() { printf '%s\n' "$*"; }
 hex() { openssl rand -hex "$1"; }
@@ -57,7 +59,9 @@ EOF
 GRIST_SESSION=$(hex 32)
 write_new grist.env <<EOF
 GRIST_SESSION_SECRET=$GRIST_SESSION
-GRIST_DEFAULT_EMAIL=admin@example.com
+GRIST_DEFAULT_EMAIL=$ADMIN_EMAIL
+GRIST_ADMIN_EMAIL=$ADMIN_EMAIL
+GRIST_BOOT_KEY=$BOOT_KEY
 GRIST_SANDBOX_FLAVOR=unsandboxed
 GRIST_ORG_IN_PATH=true
 GRIST_SERVE_SAME_ORIGIN=true

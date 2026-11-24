@@ -15,8 +15,13 @@ GRIST_DOMAIN=grist.example.com PUBLIC_PORT=8080 ./deploy.sh
 bind account with `bootstrap.sh`, then starts everything else. With a prebuilt image, set
 `GRIST_IMAGE=your/image:tag` to skip the local build; otherwise the image is built from the repository root.
 
-First run also needs Grist's own boot step: `docker compose logs grist | grep -A2 "BOOT KEY"`, then
-open `/boot`, paste that key, and set the admin email. Grist refuses every API call until this is done.
+`deploy.sh` also finishes Grist's first-run setup: `init.sh` fixes a `GRIST_BOOT_KEY` and an
+`GRIST_ADMIN_EMAIL` (`ADMIN_EMAIL`, default `admin@example.com`), and `deploy.sh` posts them to
+`/boot/login`. Caddy lets `/boot*` through without forward auth, the boot key being the gate.
+
+Accounts: LLDAP's own `admin` user is the directory administrator, not a Grist user - do not reuse the
+name for a person. Give at least one real person the email you passed as `ADMIN_EMAIL`, otherwise Grist's
+gate ("not yet configured") has no admin to let through.
 
 First login: open `http://127.0.0.1:17170` with `admin` (password `LLDAP_LDAP_USER_PASS` in `lldap.env`),
 create your own account and the bind account `svc-authelia` (password `SVC_AUTHELIA_PASSWORD`), put

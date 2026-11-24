@@ -43,5 +43,9 @@ Traps we hit — keep them in mind:
   trust Caddy's self-signed CA; the issuer stays the public `https://…` URL.
 - Changing a user's email means updating `logins.email` in `home.sqlite3`, not `aliases` (that table is for
   document URLs). Any other email is a new user with no access.
+- Grist's first-run gate blocks `/auth/login`, so with forward auth nobody can ever get in
+  (`FlexServer.ts:766-787`; `InstallAdmin.ts:33-36`). `init.sh` sets `GRIST_IN_SERVICE=true`, which skips
+  that gate; the first browser visit must then be `/auth/login?next=/` once, so Grist binds the
+  forward-auth identity. Visiting `/` first shows you as a guest.
 
 Details: `DEPLOYMENT.md` (what runs here, step by step) and `LAN-DEPLOY.md` (two ways to reach a LAN).

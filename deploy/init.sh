@@ -66,6 +66,10 @@ GRIST_SANDBOX_FLAVOR=unsandboxed
 GRIST_ORG_IN_PATH=true
 GRIST_SERVE_SAME_ORIGIN=true
 GRIST_HOST=0.0.0.0
+# Skips Grist's first-run setup gate (FlexServer.ts:755). Caddy and Authelia stand in
+# front, and the boot key below still guards /boot, so a half-configured instance is
+# not exposed; without this the gate blocks /auth/login and forward auth never starts.
+GRIST_IN_SERVICE=true
 GRIST_DATA_DIR=/persist/docs
 GRIST_INST_DIR=/persist
 GRIST_SESSION_COOKIE=grist_core

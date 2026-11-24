@@ -98,7 +98,7 @@ lsof -nP -iTCP:8484 -sTCP:LISTEN ; lsof -nP -iTCP:9091 -sTCP:LISTEN   # 都应�
 | 适合 | 员工多、要长期维护 | 小团队、临时、无域名 |
 ## 8. 端口与防火墙
 
-- 宿主只开 **443**（compose 里 `- '443:443'`，或 `443:8080` 端口映射）。
+- 宿主只开 **443**（compose 里 `- '127.0.0.1:${PUBLIC_PORT:-443}:443'`，默认即 `127.0.0.1:443 → 443`）。
 - 不发布 8484、9091：`docker run` 不加 `-p`，Authelia 不加 `ports`。
 - 主机防火墙只放行 443/tcp（macOS 用“防火墙选项”，Linux 用 `ufw allow 443/tcp`）。
 ## 9. 撤销

@@ -5,10 +5,10 @@ Caddy is the only public entry; Authelia does single sign-on with forward auth a
 `/mcp*` goes straight to the bridge, which forwards only `Authorization` and leaves permissions to Grist.
 
 Prerequisites: Docker + Compose, a host name that resolves to this machine (a DNS A record, or
-Caddy's self-signed CA you trust), and free ports 8080/443 or whichever `PUBLIC_PORT` you pick.
+Caddy's self-signed CA you trust), and a free port 443, unless you set `PUBLIC_PORT` to something else.
 
 ```sh
-GRIST_DOMAIN=grist.example.com PUBLIC_PORT=8080 ./deploy.sh
+GRIST_DOMAIN=grist.example.com ./deploy.sh        # PUBLIC_PORT defaults to 443
 ```
 
 `deploy.sh` runs `init.sh` (secrets and configuration, never overwriting), starts LLDAP, creates the
@@ -46,6 +46,8 @@ Traps we hit — keep them in mind:
   trust Caddy's self-signed CA; the issuer stays the public `https://…` URL.
 - Changing a user's email means updating `logins.email` in `home.sqlite3`, not `aliases` (that table is for
   document URLs). Any other email is a new user with no access.
+- The sandbox runs under gvisor by default: `sandbox/run.sh` checks `runsc` and builds the engine
+  checkpoint on first start, which takes tens of seconds longer than `unsandboxed`.
 - Grist's first-run gate blocks `/auth/login`, so with forward auth nobody can ever get in
   (`FlexServer.ts:766-787`; `InstallAdmin.ts:33-36`). `init.sh` sets `GRIST_IN_SERVICE=true`, which skips
   that gate.

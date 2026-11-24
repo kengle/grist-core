@@ -1,11 +1,11 @@
 # Grist + Authelia + Caddy 部署说明
 
-唯一入口 `https://grist.localhost:8080`；Grist 容器不发布端口。凭证只在
+唯一入口 `https://grist.localhost`；Grist 容器不发布端口。凭证只在
 `~/workshop/vibe/xx/grist-auth/authelia/.secrets/`，本文件不含任何密钥值。
 ## 1. 拓扑
 
 ```
-浏览器 → https://grist.localhost:8080 (Caddy, tls internal)
+浏览器 → https://grist.localhost (Caddy, tls internal)
          ├─ /authelia* → authelia:9091      （免鉴权，登录页）
          ├─ /api/*     → grist-local:8484   （无 forward_auth，key 或 Grist cookie）
          └─ 其它        → forward_auth → Authelia → grist-local:8484
@@ -35,7 +35,7 @@ docker run -d --name grist-local --restart unless-stopped \
   -e GRIST_DEFAULT_EMAIL=ken@local -e GRIST_SANDBOX_FLAVOR=unsandboxed \
   -e GRIST_FORWARD_AUTH_HEADER=Remote-Email \
   -e GRIST_FORWARD_AUTH_LOGOUT_PATH=/authelia/logout \
-  -e APP_HOME_URL=https://grist.localhost:8080/ \
+  -e APP_HOME_URL=https://grist.localhost/ \
   -e APP_HOME_INTERNAL_URL=http://127.0.0.1:8484/ \
   -e GRIST_TEMPLATE_ORG=templates -e GRIST_ORG_IN_PATH=true \
   -e GRIST_SERVE_SAME_ORIGIN=true \
@@ -47,7 +47,7 @@ docker run -d --name grist-local --restart unless-stopped \
 ## 4. Caddyfile 全文
 
 ```
-https://grist.localhost:8080 {
+https://grist.localhost {
 	tls internal
 
 	# Authelia portal: must stay unauthenticated, or login loops.
@@ -85,7 +85,7 @@ https://grist.localhost:8080 {
 ## 5. Authelia 配置要点
 - 用户：`ken`/`ken@local`、`mm`/`mm@local.test`，均属 `admins`；file 后端 + `argon2`。
 - `access_control.default_policy: 'one_factor'`，无自定义规则，**未启用 2FA**（`totp` 只设 `issuer`）。
-- `session`：`grist_session`、`expiration: '1h'`、cookie `domain: grist.localhost`、`authelia_url: https://grist.localhost:8080/authelia`。
+- `session`：`grist_session`、`expiration: '1h'`、cookie `domain: grist.localhost`、`authelia_url: https://grist.localhost/authelia`。
 - `storage.local.path: /config/db.sqlite3`；`server.address: tcp://0.0.0.0:9091/authelia`（子路径）；`notifier.filesystem` 写文件不发邮件；`reset_password.jwt_secret` 取自 `.secrets/jwt_secret`。
 ## 6. 从零重建
 
@@ -124,9 +124,9 @@ users:
 ```
 ## 7. 验证清单
 ```bash
-curl -sI https://grist.localhost:8080/ | head -3   # 302 → /authelia/?rd=...
-curl -s -H "Authorization: Bearer <KEY>" https://grist.localhost:8080/api/orgs  # 200 + org 列表
-curl -s https://grist.localhost:8080/api/orgs     # 200 + []
+curl -sI https://grist.localhost/ | head -3   # 302 → /authelia/?rd=...
+curl -s -H "Authorization: Bearer <KEY>" https://grist.localhost/api/orgs  # 200 + org 列表
+curl -s https://grist.localhost/api/orgs     # 200 + []
 lsof -nP -iTCP:8484 -sTCP:LISTEN                  # 空
 ```
 浏览器登录后进 Grist 首页；打开文档 → 分享图标 → 「在副本上工作」应成功（URL 形如 `/o/<org>/doc/<id>~<forkId>~<userId>`）。
@@ -199,10 +199,10 @@ identity_providers:
 - 工具 19 个：`list_orgs`、`list_workspaces`、`list_docs`、`get_doc`、`list_tables`、`describe_table`、`query_records`、`get_record`、`add_records`、`update_records`、`delete_records`、`apply_user_actions`、`create_doc`、`copy_doc`、`remove_doc`、`upload_attachment`、`list_webhooks`、`create_webhook`、`delete_webhook`。
 - 身份：桥**只透传 `Authorization`**，不验签、不刷新、不存凭据；权限由 Grist 按 token 所属用户判定（OIDC token 请求在 `Authorizer.ts` 里以该用户执行，等同 API key）。
 - Caddy：`/mcp*` 与 `/.well-known/oauth-protected-resource` 直通 `grist-local:8765`，**不经 Authelia**。
-- Authelia 客户端 `grist-mcp` 要点：`token_endpoint_auth_method: client_secret_basic`（secret 用十六进制——base64 里的 `+` 会破坏 Basic 头）；`audience` 含 `https://grist.localhost:8080`；`requested_audience_mode: 'implicit'`；`claims_policies.<p>.access_token: ['email']`；`access_token_signed_response_alg: 'RS256'`；`grant_types` 含 `refresh_token`；`scopes` 含 `offline_access`；`consent_mode: 'pre-configured'`（首次授权仍需批准一次）。
+- Authelia 客户端 `grist-mcp` 要点：`token_endpoint_auth_method: client_secret_basic`（secret 用十六进制——base64 里的 `+` 会破坏 Basic 头）；`audience` 含 `https://grist.localhost`；`requested_audience_mode: 'implicit'`；`claims_policies.<p>.access_token: ['email']`；`access_token_signed_response_alg: 'RS256'`；`grant_types` 含 `refresh_token`；`scopes` 含 `offline_access`；`consent_mode: 'pre-configured'`（首次授权仍需批准一次）。
 - 令牌寿命（`identity_providers.oidc.lifespans`）：`access_token: '24h'`、`id_token: '24h'`、`refresh_token: '30d'`、**`authorize_code: '5m'`**（键名是 `authorize_code`，写成 `authorization_code` 会启动失败）。
-- Grist 侧四个变量：`GRIST_OIDC_JWKS_URL=http://authelia:9091/authelia/jwks.json`（容器内网，容器不信任 Caddy 的 CA）、`GRIST_OIDC_ISSUER=https://grist.localhost:8080/authelia`、`GRIST_OIDC_AUDIENCE=https://grist.localhost:8080`、`GRIST_OIDC_EMAIL_CLAIM=email`。
-- PiP 条目：`url: https://grist.localhost:8080/mcp`；`oauth.clientId: grist-mcp`；`oauth.clientSecret: "!cat /Users/ken/.pi-pocket/grist-mcp-secret"`；`oauth.authServerMetadataUrl: https://grist.localhost:8080/authelia/.well-known/openid-configuration`；`oauth.callbackPort: 9999`；`oauth.scope` 含 `offline_access`。
+- Grist 侧四个变量：`GRIST_OIDC_JWKS_URL=http://authelia:9091/authelia/jwks.json`（容器内网，容器不信任 Caddy 的 CA）、`GRIST_OIDC_ISSUER=https://grist.localhost/authelia`、`GRIST_OIDC_AUDIENCE=https://grist.localhost`、`GRIST_OIDC_EMAIL_CLAIM=email`。
+- PiP 条目：`url: https://grist.localhost/mcp`；`oauth.clientId: grist-mcp`；`oauth.clientSecret: "!cat /Users/ken/.pi-pocket/grist-mcp-secret"`；`oauth.authServerMetadataUrl: https://grist.localhost/authelia/.well-known/openid-configuration`；`oauth.callbackPort: 9999`；`oauth.scope` 含 `offline_access`。
 - 两条教训：
   1. **不要拿 PiP 的 refresh token 做手工刷新实验**——Authelia 会轮换，旧 token 立即作废，PiP 下次续期会 `invalid_grant`。
   2. `grist-local` 的环境变量现在在 `~/workshop/vibe/xx/grist-auth/grist.env`（权限 600、已 gitignore），由 compose 的 `env_file` 加载；**不要再手工 `docker run`**。

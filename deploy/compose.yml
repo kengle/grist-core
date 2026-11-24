@@ -45,7 +45,6 @@ services:
     restart: 'unless-stopped'
     environment:
       GRIST_DOMAIN: '${GRIST_DOMAIN:-grist.example.com}'
-      PUBLIC_PORT: '${PUBLIC_PORT:-8080}'
       GRIST_SESSION_COOKIE: '${GRIST_SESSION_COOKIE:-grist_core}'
     depends_on:
       - 'authelia'

@@ -255,3 +255,62 @@ authentication_backend:
 ```
 
 改完后：`docker compose up -d authelia`，确认登录页能列出用户；`file` 后端与 `users_database.yml` 可暂时保留做回滚。
+
+## 客户端访问准备（自签主机名 + 根证书）
+
+`GRIST_DOMAIN` 是自签主机名：浏览器要能解析它，并且要信任 Caddy 的根证书；OIDC 回跳也要求同一个主机名可达。下面以 `g.zs365.xyz` 为例，换成你自己的 `GRIST_DOMAIN` 即可。
+
+### 1. hosts 记录
+
+- macOS／Linux：
+  ```bash
+  sudo sh -c 'echo "127.0.0.1 g.zs365.xyz" >> /etc/hosts'
+  ```
+- Windows（管理员打开记事本）：编辑 `C:\Windows\System32\drivers\etc\hosts`，追加一行：
+  ```
+  127.0.0.1 g.zs365.xyz
+  ```
+- **局域网里的其它机器**：要填 Caddy 所在机器的**局域网 IP**，不是 `127.0.0.1`：
+  ```bash
+  ipconfig getifaddr en0          # 例如 192.168.1.20
+  # 在客户端 hosts 里写： 192.168.1.20 g.zs365.xyz
+  ```
+  同时 `deploy/compose.yml` 里 Caddy 的绑定要从 `127.0.0.1:${PUBLIC_PORT:-443}:443` 改成
+  `0.0.0.0:${PUBLIC_PORT:-443}:443`，否则只有本机能连。
+
+### 2. 导出根证书
+
+```bash
+docker compose cp caddy:/data/caddy/pki/authorities/local/root.crt ./caddy-root.crt
+```
+这是 **根证书**；站点证书由它即时签发，所以换域名不必重装，只要部署时重新导出一次即可。
+
+### 3. 安装根证书
+
+- macOS：
+  ```bash
+  sudo security add-trusted-cert -d -r trustRoot -k /Library/Keychains/System.keychain ./caddy-root.crt
+  security find-certificate -c "Caddy Local Authority" -a /Library/Keychains/System.keychain   # 验证
+  ```
+- Windows（管理员）：
+  ```
+  certutil -addstore -f "ROOT" caddy-root.crt
+  certutil -store ROOT | findstr /i caddy        # 验证
+  ```
+  或在证书对话框里选“**受信任的根证书颁发机构**”。
+- Linux：
+  ```bash
+  sudo cp caddy-root.crt /usr/local/share/ca-certificates/ && sudo update-ca-certificates
+  ```
+- Firefox：设置 → 隐私与安全 → 证书 → 查看证书 → 证书颁发机构 → 导入（Firefox 有自己的信任库）。
+
+### 4. Node／CLI
+
+Node 不读系统钥匙串，命令行工具要显式指定：
+```bash
+NODE_EXTRA_CA_CERTS=/绝对路径/caddy-root.crt node your-script.js
+```
+
+### 5. 安全提示
+
+根证书**不要提交进仓库**、也**不要放进 `state/`**（那会被整目录备份）。持有这个根证书的机器可以伪造任何被信任它的设备认可的站点证书。

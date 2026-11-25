@@ -58,3 +58,4 @@ Traps we hit — keep them in mind:
   redirected. The cookie test needs wildcards: `not header Cookie *grist_core*`.
 
 Details: `DEPLOYMENT.md` (what runs here, step by step) and `LAN-DEPLOY.md` (two ways to reach a LAN).
+Client-side setup (hosts entry, trusting Caddy's root CA): see `DEPLOYMENT.md`, section 客户端访问准备.

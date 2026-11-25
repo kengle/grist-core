@@ -92,6 +92,10 @@ TZ=UTC
 APP_HOME_URL=$PUBLIC_URL/
 APP_HOME_INTERNAL_URL=http://127.0.0.1:8484/
 GRIST_FORWARD_AUTH_HEADER=Remote-Email
+# forward-auth mode: identity comes only from Remote-Email, the session cookie is not trusted.
+# Grist's /logout does not clear the cookie (FlexServer.ts:2951-2969); without this a stale
+# cookie leaves the browser stuck on @Guest.
+GRIST_IGNORE_SESSION=true
 GRIST_FORWARD_AUTH_LOGOUT_PATH=/authelia/logout
 GRIST_TEMPLATE_ORG=
 GRIST_OIDC_JWKS_URL=http://authelia:9091/authelia/jwks.json

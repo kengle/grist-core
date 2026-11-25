@@ -326,3 +326,9 @@ NODE_EXTRA_CA_CERTS=/绝对路径/caddy-root.crt node your-script.js
 - **Authelia 的 bind 账号 `svc-authelia`** 必须在 **`lldap_strict_readonly`**，否则它只能看到自己，列不出用户与组。
 - **登录名是 uid，不是邮箱**：Authelia 的 `users_filter` 按 `uid` 匹配（`(&({username_attribute}={input})(objectClass=person))`），所以用 `grist-admin` 登录，而不是 `grist-admin@…`；Grist 界面上显示的邮箱来自 LDAP 的 `mail` 属性。
 - **同样的事也可以用 GraphQL 做**（脚本就是这么做的）：`createUser`、`updateUser`（改 email／displayName）、`lldap_set_password`（设密码）、`addUserToGroup`／`removeUserFromGroup`（加退组），端点 `http://127.0.0.1:17170/api/graphql`，先 `POST /auth/simple/login` 拿 token。组变更对 LDAP 立即生效，`memberOf` 下一次查询就是新值。
+
+### 为什么要开 `GRIST_IGNORE_SESSION`
+
+Grist 的 `/logout` **不删 cookie**，只清空服务端会话（`FlexServer.ts:2951-2969`），随后把浏览器 302 到 `/authelia/logout`。若 Grist 继续信任会话 cookie，一个旧 cookie 就会让页面停在 `@Guest`。设 `GRIST_IGNORE_SESSION=true` 后，每个请求的身份只取自 `Remote-Email`（`ForwardAuthLogin.ts:83, 117-118`），cookie 不再是判据。
+
+代价与前提：**Caddy 必须对全部页面路径做 `forward_auth`**（当前 Caddyfile 的 catch-all 覆盖 `/`、`/o/*`、`/api/*`、`/auth/*`），否则没有头可用；绕过 forward_auth 的只有 `/authelia*`、`/mcp*`、`/.well-known*`、`/boot*`，它们本来就不靠会话身份（门户、OIDC Bearer、boot key）。**不要**把 `/api*` 从 forward_auth 里拿出去，否则 API 会失去身份。

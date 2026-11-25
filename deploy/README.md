@@ -48,6 +48,7 @@ Traps we hit — keep them in mind:
   document URLs). Any other email is a new user with no access.
 - The sandbox runs under gvisor by default: `sandbox/run.sh` checks `runsc` and builds the engine
   checkpoint on first start, which takes tens of seconds longer than `unsandboxed`.
+- `GRIST_IGNORE_SESSION=true` makes the identity come from `Remote-Email` only; Grist's `/logout` does not clear its cookie (`FlexServer.ts:2951-2969`), so trusting the cookie leaves you on `@Guest`. This requires Caddy to run `forward_auth` on every page path.
 - Grist's first-run gate blocks `/auth/login`, so with forward auth nobody can ever get in
   (`FlexServer.ts:766-787`; `InstallAdmin.ts:33-36`). `init.sh` sets `GRIST_IN_SERVICE=true`, which skips
   that gate.

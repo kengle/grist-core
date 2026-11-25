@@ -44,7 +44,7 @@ services:
     image: 'caddy:2'
     restart: 'unless-stopped'
     environment:
-      GRIST_DOMAIN: '${GRIST_DOMAIN:-grist.example.com}'
+      GRIST_DOMAIN: '${GRIST_DOMAIN:?set GRIST_DOMAIN}'
       GRIST_SESSION_COOKIE: '${GRIST_SESSION_COOKIE:-grist_core}'
     depends_on:
       - 'authelia'

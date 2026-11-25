@@ -8,7 +8,7 @@ Prerequisites: Docker + Compose, a host name that resolves to this machine (a DN
 Caddy's self-signed CA you trust), and a free port 443, unless you set `PUBLIC_PORT` to something else.
 
 ```sh
-GRIST_DOMAIN=grist.example.com ./deploy.sh        # PUBLIC_PORT defaults to 443
+GRIST_DOMAIN=g.example.org ./deploy.sh        # PUBLIC_PORT defaults to 443
 ```
 
 `deploy.sh` runs `init.sh` (secrets and configuration, never overwriting), starts LLDAP, creates the

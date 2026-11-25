@@ -7,6 +7,6 @@ users:
     disabled: false
     displayname: 'You'
     password: '<ARGON2_HASH>'
-    email: 'you@example.com'
+    email: 'you@DOMAIN'
     groups:
       - 'admins'

@@ -6,7 +6,8 @@ cd "$(dirname "$0")"
 
 . ./.env
 . ./lldap.env
-BASE_DN=${LLDAP_LDAP_BASE_DN:-dc=example,dc=com}
+BASE_DN=${LLDAP_LDAP_BASE_DN:?run init.sh first}
+MAIL_DOMAIN=${MAIL_DOMAIN:-$(sed -n 's/^GRIST_ADMIN_EMAIL=.*@//p' grist.env)}
 WEB=${LLDAP_WEB_PORT:-17170}
 
 say() { printf '%s\n' "$*"; }
@@ -35,7 +36,7 @@ gql() {
 
 # 2. Create the bind account.
 CREATE_BODY=$(cat <<JSON
-{"query":"mutation(\$u:CreateUserInput!){createUser(user:\$u){id}}","variables":{"u":{"id":"svc-authelia","email":"svc-authelia@example.com","displayName":"Authelia bind"}}}
+{"query":"mutation(\$u:CreateUserInput!){createUser(user:\$u){id}}","variables":{"u":{"id":"svc-authelia","email":"svc-authelia@$MAIL_DOMAIN","displayName":"Authelia bind"}}}
 JSON
 )
 RESULT=$(gql "$CREATE_BODY")

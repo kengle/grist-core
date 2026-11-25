@@ -5,13 +5,15 @@ set -eu
 
 cd "$(dirname "$0")"
 
-GRIST_DOMAIN=${GRIST_DOMAIN:-grist.example.com}
+GRIST_DOMAIN=${GRIST_DOMAIN:?set GRIST_DOMAIN, for example g.example.org}
 PUBLIC_PORT=${PUBLIC_PORT:-443}
 LDAP_PORT=${LDAP_PORT:-3890}
 LLDAP_WEB_PORT=${LLDAP_WEB_PORT:-17170}
-BASE_DN=${BASE_DN:-dc=example,dc=com}
+BASE_DN=${BASE_DN:-dc=$(printf '%s' "${MAIL_DOMAIN:-$GRIST_DOMAIN}" | sed 's/\./,dc=/g')}
 GRIST_IMAGE=${GRIST_IMAGE:-grist-merged:local}
-ADMIN_EMAIL=${ADMIN_EMAIL:-admin@example.com}
+MAIL_DOMAIN=${MAIL_DOMAIN:-$(printf '%s' "$GRIST_DOMAIN" | cut -s -d. -f2-)}
+[ -n "$MAIL_DOMAIN" ] || MAIL_DOMAIN=$GRIST_DOMAIN
+ADMIN_EMAIL=${ADMIN_EMAIL:-grist-admin@$MAIL_DOMAIN}
 DATA_ROOT=${DATA_ROOT:-./state}
 # 443 is implicit in an https URL; any other port has to be spelled out.
 PUBLIC_URL="https://$GRIST_DOMAIN"
@@ -137,6 +139,8 @@ else
     say "created: $DATA_ROOT/authelia/configuration.yml"
 fi
 
+say ""
+say "NOTE: ADMIN_EMAIL was derived from GRIST_DOMAIN: $ADMIN_EMAIL" 2>/dev/null || true
 say ""
 say "Next steps:"
 say "  1. docker compose up -d --build"

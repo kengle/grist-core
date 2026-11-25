@@ -53,7 +53,7 @@ say "  - created the LLDAP bind user svc-authelia and added it to lldap_strict_r
 say "  - fixed the Grist boot key and completed /boot/login"
 say ""
 say "You still need to do:"
-say "  - open $URL and sign in with $GRIST_ADMIN_EMAIL (password: FIRST_USER_PASSWORD in lldap.env)"
+say "  - open $URL and sign in with grist-admin (the LLDAP username, not the email; password: FIRST_USER_PASSWORD in lldap.env)"
 say "  - change that password at http://127.0.0.1:$LLDAP_WEB_PORT (LLDAP, user grist-admin)"
 say "  - add more people at the same page, and put them in lldap_admin if they need admin rights"
 docker compose ps

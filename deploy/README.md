@@ -25,7 +25,7 @@ password is `FIRST_USER_PASSWORD` in `lldap.env`. Grist's install-admin gate com
 login email with `GRIST_ADMIN_EMAIL` (`InstallAdmin.ts:72-75`), so the first person to sign in must use
 exactly that email.
 
-First login: open `http://127.0.0.1:17170` with `admin` (password `LLDAP_LDAP_USER_PASS` in `lldap.env`),
+First login: sign in at the app as `grist-admin` (the LLDAP username; its email is `ADMIN_EMAIL`). Manage people at `http://127.0.0.1:17170` with `admin` (password `LLDAP_LDAP_USER_PASS` in `lldap.env`),
 create your own account and the bind account `svc-authelia` (password `SVC_AUTHELIA_PASSWORD`), put
 `svc-authelia` in `lldap_strict_readonly` and yourself in `lldap_admin`. Authelia binds as `svc-authelia`,
 so it can read users and groups but change nothing.

@@ -314,3 +314,14 @@ NODE_EXTRA_CA_CERTS=/绝对路径/caddy-root.crt node your-script.js
 ### 5. 安全提示
 
 根证书**不要提交进仓库**、也**不要放进 `state/`**（那会被整目录备份）。持有这个根证书的机器可以伪造任何被信任它的设备认可的站点证书。
+
+## 怎么管人
+
+网页入口：`http://127.0.0.1:17170`，用 **`admin`** 登录，密码在 `lldap.env` 的 `LLDAP_LDAP_USER_PASS`。
+
+- **改一个人**：在 `Users` 里点 **User ID 那一格**（不是整行），进入编辑界面，可以改 **email**、**display name**、**密码**。
+- **组**：成员在 **`Groups`** 页加——选组 → 添加成员；用户页只有“所属组”的显示，没有编辑入口。
+- **谁需要 Grist 管理员权限**：把该用户加进 LLDAP 内置组 **`lldap_admin`**。
+- **Authelia 的 bind 账号 `svc-authelia`** 必须在 **`lldap_strict_readonly`**，否则它只能看到自己，列不出用户与组。
+- **登录名是 uid，不是邮箱**：Authelia 的 `users_filter` 按 `uid` 匹配（`(&({username_attribute}={input})(objectClass=person))`），所以用 `grist-admin` 登录，而不是 `grist-admin@…`；Grist 界面上显示的邮箱来自 LDAP 的 `mail` 属性。
+- **同样的事也可以用 GraphQL 做**（脚本就是这么做的）：`createUser`、`updateUser`（改 email／displayName）、`lldap_set_password`（设密码）、`addUserToGroup`／`removeUserFromGroup`（加退组），端点 `http://127.0.0.1:17170/api/graphql`，先 `POST /auth/simple/login` 拿 token。组变更对 LDAP 立即生效，`memberOf` 下一次查询就是新值。

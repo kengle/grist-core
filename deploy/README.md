@@ -59,3 +59,4 @@ Traps we hit — keep them in mind:
 
 Details: `DEPLOYMENT.md` (what runs here, step by step) and `LAN-DEPLOY.md` (two ways to reach a LAN).
 Client-side setup (hosts entry, trusting Caddy's root CA): see `DEPLOYMENT.md`, section 客户端访问准备.
+Managing people (LLDAP UI and GraphQL): see `DEPLOYMENT.md`, section 怎么管人.

@@ -13,6 +13,9 @@ BASE_DN=${BASE_DN:-dc=example,dc=com}
 GRIST_IMAGE=${GRIST_IMAGE:-grist-merged:local}
 ADMIN_EMAIL=${ADMIN_EMAIL:-admin@example.com}
 DATA_ROOT=${DATA_ROOT:-./state}
+# 443 is implicit in an https URL; any other port has to be spelled out.
+PUBLIC_URL="https://$GRIST_DOMAIN"
+[ "$PUBLIC_PORT" = "443" ] || PUBLIC_URL="$PUBLIC_URL:$PUBLIC_PORT"
 BOOT_KEY=${BOOT_KEY:-$(openssl rand -hex 12)}
 
 say() { printf '%s\n' "$*"; }
@@ -81,17 +84,17 @@ NODE_OPTIONS=--no-deprecation --disable-proto=delete
 NODE_ENV=production
 TYPEORM_DATABASE=/persist/home.sqlite3
 TZ=UTC
-APP_HOME_URL=https://$GRIST_DOMAIN:$PUBLIC_PORT/
+APP_HOME_URL=$PUBLIC_URL/
 APP_HOME_INTERNAL_URL=http://127.0.0.1:8484/
 GRIST_FORWARD_AUTH_HEADER=Remote-Email
 GRIST_FORWARD_AUTH_LOGOUT_PATH=/authelia/logout
 GRIST_TEMPLATE_ORG=
 GRIST_OIDC_JWKS_URL=http://authelia:9091/authelia/jwks.json
-GRIST_OIDC_ISSUER=https://$GRIST_DOMAIN:$PUBLIC_PORT/authelia
-GRIST_OIDC_AUDIENCE=https://$GRIST_DOMAIN:$PUBLIC_PORT
+GRIST_OIDC_ISSUER=$PUBLIC_URL/authelia
+GRIST_OIDC_AUDIENCE=$PUBLIC_URL
 GRIST_OIDC_EMAIL_CLAIM=email
 GRIST_API_BASE=http://127.0.0.1:8484/api
-MCP_RESOURCE_URL=https://$GRIST_DOMAIN:$PUBLIC_PORT
+MCP_RESOURCE_URL=$PUBLIC_URL
 EOF
 
 # Authelia: render configuration.yml from the template, filling in fresh secrets.
@@ -141,7 +144,7 @@ say "  2. open http://127.0.0.1:$LLDAP_WEB_PORT (user 'admin', password in lldap
 say "     - create the people you need under $BASE_DN"
 say "     - create the bind account 'svc-authelia' and set its password to SVC_AUTHELIA_PASSWORD (also in lldap.env)"
 say "     - add 'svc-authelia' to the built-in group lldap_strict_readonly, and your own account to lldap_admin"
-say "  3. open https://$GRIST_DOMAIN:$PUBLIC_PORT and sign in with one of those accounts"
+say "  3. open $PUBLIC_URL and sign in with one of those accounts"
 say ""
 say "Back up $DATA_ROOT (documents, directory and Authelia state live there). One tar covers it all."
 say "authelia/configuration.yml and the *.env files hold secrets: keep them out of git."
@@ -149,8 +152,7 @@ say "authelia/configuration.yml and the *.env files hold secrets: keep them out 
 # Refuse to continue with configuration from another domain or port: grist.env and the
 # rendered Authelia configuration bake both into URLs, so a stale .env silently produces
 # links that point at the wrong host.
-EXPECTED_URL="https://$GRIST_DOMAIN"
-[ "$PUBLIC_PORT" = "443" ] || EXPECTED_URL="$EXPECTED_URL:$PUBLIC_PORT"
+EXPECTED_URL="$PUBLIC_URL"
 if [ -f grist.env ]; then
     FOUND_URL=$(sed -n 's/^APP_HOME_URL=//p' grist.env)
     if [ "$FOUND_URL" != "$EXPECTED_URL/" ]; then

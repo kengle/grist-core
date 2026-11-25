@@ -1,4 +1,4 @@
-{$GRIST_DOMAIN} {
+{$GRIST_SITE_DOMAIN} {
 	tls internal
 
 	# Authelia portal: must stay unauthenticated, or the login page loops.

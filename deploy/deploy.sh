@@ -17,13 +17,13 @@ DATA_ROOT=${DATA_ROOT:-./state}
 GRIST_BOOT_KEY=$(sed -n 's/^GRIST_BOOT_KEY=//p' grist.env)
 GRIST_ADMIN_EMAIL=$(sed -n 's/^GRIST_ADMIN_EMAIL=//p' grist.env)
 # 443 is implicit in an https URL; any other port has to be spelled out.
-URL="https://$GRIST_DOMAIN"
+URL="https://$GRIST_SITE_DOMAIN"
 [ "$PUBLIC_PORT" = "443" ] || URL="$URL:$PUBLIC_PORT"
 say() { printf '%s\n' "$*"; }
 
 say "waiting for Grist on $URL ..."
 i=0
-RESOLVE="--resolve $GRIST_DOMAIN:$PUBLIC_PORT:127.0.0.1"
+RESOLVE="--resolve $GRIST_SITE_DOMAIN:$PUBLIC_PORT:127.0.0.1"
 while [ $i -lt 90 ]; do
     if curl -fsSk $RESOLVE "$URL/boot" >/dev/null 2>&1; then break; fi
     i=$((i + 1)); sleep 2

@@ -258,7 +258,7 @@ authentication_backend:
 
 ## 客户端访问准备（自签主机名 + 根证书）
 
-`GRIST_DOMAIN` 是自签主机名：浏览器要能解析它，并且要信任 Caddy 的根证书；OIDC 回跳也要求同一个主机名可达。下面以 `g.zs365.xyz` 为例，换成你自己的 `GRIST_DOMAIN` 即可。
+`GRIST_SITE_DOMAIN` 是自签主机名：浏览器要能解析它，并且要信任 Caddy 的根证书；OIDC 回跳也要求同一个主机名可达。下面以 `g.zs365.xyz` 为例，换成你自己的 `GRIST_SITE_DOMAIN` 即可。
 
 ### 1. hosts 记录
 
@@ -321,7 +321,8 @@ NODE_EXTRA_CA_CERTS=/绝对路径/caddy-root.crt node your-script.js
 
 - **改一个人**：在 `Users` 里点 **User ID 那一格**（不是整行），进入编辑界面，可以改 **email**、**display name**、**密码**。
 - **组**：成员在 **`Groups`** 页加——选组 → 添加成员；用户页只有“所属组”的显示，没有编辑入口。
-- **谁需要 Grist 管理员权限**：把该用户加进 LLDAP 内置组 **`lldap_admin`**。
+- **Grist 管理员权限**：由 `GRIST_ADMIN_EMAIL` 决定（该邮箱的账号即是 Grist 安装管理员）；`lldap_admin` 只是 **LLDAP 目录管理员**组，`grist-admin` 有意**不**加入。
+- **LLDAP 自带的 `admin` 账号**：它是目录管理员，密码只由 `LLDAP_LDAP_USER_PASS` 决定，任何部署步骤都不得改动它。
 - **Authelia 的 bind 账号 `svc-authelia`** 必须在 **`lldap_strict_readonly`**，否则它只能看到自己，列不出用户与组。
 - **登录名是 uid，不是邮箱**：Authelia 的 `users_filter` 按 `uid` 匹配（`(&({username_attribute}={input})(objectClass=person))`），所以用 `grist-admin` 登录，而不是 `grist-admin@…`；Grist 界面上显示的邮箱来自 LDAP 的 `mail` 属性。
 - **同样的事也可以用 GraphQL 做**（脚本就是这么做的）：`createUser`、`updateUser`（改 email／displayName）、`lldap_set_password`（设密码）、`addUserToGroup`／`removeUserFromGroup`（加退组），端点 `http://127.0.0.1:17170/api/graphql`，先 `POST /auth/simple/login` 拿 token。组变更对 LDAP 立即生效，`memberOf` 下一次查询就是新值。

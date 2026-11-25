@@ -8,7 +8,7 @@ Prerequisites: Docker + Compose, a host name that resolves to this machine (a DN
 Caddy's self-signed CA you trust), and a free port 443, unless you set `PUBLIC_PORT` to something else.
 
 ```sh
-GRIST_DOMAIN=g.example.org ./deploy.sh        # PUBLIC_PORT defaults to 443
+GRIST_SITE_DOMAIN=g.example.org ./deploy.sh        # PUBLIC_PORT defaults to 443
 ```
 
 `deploy.sh` runs `init.sh` (secrets and configuration, never overwriting), starts LLDAP, creates the
@@ -16,16 +16,16 @@ bind account with `bootstrap.sh`, then starts everything else. With a prebuilt i
 `GRIST_IMAGE=your/image:tag` to skip the local build; otherwise the image is built from the repository root.
 
 `deploy.sh` also finishes Grist's first-run setup: `init.sh` fixes a `GRIST_BOOT_KEY` and an
-`GRIST_ADMIN_EMAIL` (`ADMIN_EMAIL`, default `admin@example.com`), and `deploy.sh` posts them to
+`GRIST_SITE_DOMAIN` and `GRIST_ADMIN_EMAIL`, and `deploy.sh` posts them to
 `/boot/login`. Caddy lets `/boot*` through without forward auth, the boot key being the gate.
 
 Accounts: LLDAP's own `admin` user is the directory administrator, not a Grist user - do not reuse the
-name for a person. `bootstrap.sh` creates `grist-admin` with the email you passed as `ADMIN_EMAIL`; its
+name for a person. `bootstrap.sh` creates `grist-admin` with the email you passed as `GRIST_ADMIN_EMAIL`; its
 password is `FIRST_USER_PASSWORD` in `lldap.env`. Grist's install-admin gate compares the request user's
 login email with `GRIST_ADMIN_EMAIL` (`InstallAdmin.ts:72-75`), so the first person to sign in must use
 exactly that email.
 
-First login: sign in at the app as `grist-admin` (the LLDAP username; its email is `ADMIN_EMAIL`). Manage people at `http://127.0.0.1:17170` with `admin` (password `LLDAP_LDAP_USER_PASS` in `lldap.env`),
+First login: sign in at the app as `grist-admin` (the LLDAP username; its email is `GRIST_ADMIN_EMAIL`). Manage people at `http://127.0.0.1:17170` with `admin` (password `LLDAP_LDAP_USER_PASS` in `lldap.env`),
 create your own account and the bind account `svc-authelia` (password `SVC_AUTHELIA_PASSWORD`), put
 `svc-authelia` in `lldap_strict_readonly` and yourself in `lldap_admin`. Authelia binds as `svc-authelia`,
 so it can read users and groups but change nothing.

@@ -8,20 +8,20 @@
 - 不做的部分：不接 LDAP/AD、不做 SSO/OIDC、不引入内网 DNS 服务器（解析靠公网 DNS 的私有 A 记录或客户端 hosts）。
 ## 2. 方案 A：自有域名 + 私有 IP 的 A 记录（推荐）
 
-**DNS**：在你有权管理的公网域名上加 `A grist.example.com → 192.168.1.10`（私网地址）。
+**DNS**：在你有权管理的公网域名上加 `A grist.example.org → 192.168.1.10`（私网地址）。
 外网解析得到私网 IP，连不上；局域网内能解析即可用。无需对外开 80/443。
 
 **证书**：用 DNS-01 签发，不要求 80/443 对外。
 
 - 方式 1（自动续期）：`xcaddy build --with github.com/caddy-dns/cloudflare`，Caddyfile 内 `tls { dns cloudflare {env.CF_API_TOKEN} }`。
-- 方式 2（外部签发）：`acme.sh --issue --dns dns_cf -d grist.example.com`，再
-  `acme.sh --install-cert -d grist.example.com --fullchain-file /srv/certs/fullchain.pem --key-file /srv/certs/key.pem --reloadcmd "docker compose -f /srv/grist-auth/compose.yml exec caddy caddy reload --config /etc/caddy/Caddyfile"`，
+- 方式 2（外部签发）：`acme.sh --issue --dns dns_cf -d grist.example.org`，再
+  `acme.sh --install-cert -d grist.example.org --fullchain-file /srv/certs/fullchain.pem --key-file /srv/certs/key.pem --reloadcmd "docker compose -f /srv/grist-auth/compose.yml exec caddy caddy reload --config /etc/caddy/Caddyfile"`，
   Caddyfile 内 `tls /certs/fullchain.pem /certs/key.pem`，并挂载 `-v /srv/certs:/certs:ro`。
 
 **改三个值**（方案 A 必须同步改名）：
-- Grist env `APP_HOME_URL=https://grist.example.com/`
-- Authelia `session.cookies[].authelia_url: 'https://grist.example.com/authelia'`
-- Authelia cookie `domain: 'grist.example.com'`（`default_redirection_url` 同步）
+- Grist env `APP_HOME_URL=https://grist.example.org/`
+- Authelia `session.cookies[].authelia_url: 'https://grist.example.org/authelia'`
+- Authelia cookie `domain: 'grist.example.org'`（`default_redirection_url` 同步）
 
 **续期**：方式 1 由 Caddy 自动；方式 2 靠 acme.sh 的 cron（`--reloadcmd` 已含）。
 续期后只需 **reload Caddy**（`caddy reload`），不必停服、不必重启 Grist。

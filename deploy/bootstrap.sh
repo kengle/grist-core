@@ -1,5 +1,7 @@
 #!/bin/sh
-# Create the LLDAP bind account Authelia needs, then add it to the read-only group.
+# Create the LLDAP bind account Authelia needs.
+# NOTE: LLDAP's own `admin` account is never modified here. Its password comes only from
+# LLDAP_LDAP_USER_PASS, and no step of this script may overwrite it., then add it to the read-only group.
 # Run after `docker compose up -d lldap` and before the first `up -d` of Authelia.
 set -eu
 cd "$(dirname "$0")"
@@ -7,7 +9,8 @@ cd "$(dirname "$0")"
 . ./.env
 . ./lldap.env
 BASE_DN=${LLDAP_LDAP_BASE_DN:?run init.sh first}
-MAIL_DOMAIN=${MAIL_DOMAIN:-$(sed -n 's/^GRIST_ADMIN_EMAIL=.*@//p' grist.env)}
+GRIST_ADMIN_EMAIL=${GRIST_ADMIN_EMAIL:-$(sed -n 's/^GRIST_ADMIN_EMAIL=//p' grist.env)}
+SERVICE_EMAIL_DOMAIN=${SERVICE_EMAIL_DOMAIN:-$(printf '%s' "$GRIST_ADMIN_EMAIL" | sed 's/.*@//')}
 WEB=${LLDAP_WEB_PORT:-17170}
 
 say() { printf '%s\n' "$*"; }
@@ -36,7 +39,7 @@ gql() {
 
 # 2. Create the bind account.
 CREATE_BODY=$(cat <<JSON
-{"query":"mutation(\$u:CreateUserInput!){createUser(user:\$u){id}}","variables":{"u":{"id":"svc-authelia","email":"svc-authelia@$MAIL_DOMAIN","displayName":"Authelia bind"}}}
+{"query":"mutation(\$u:CreateUserInput!){createUser(user:\$u){id}}","variables":{"u":{"id":"svc-authelia","email":"svc-authelia@$SERVICE_EMAIL_DOMAIN","displayName":"Authelia bind"}}}
 JSON
 )
 RESULT=$(gql "$CREATE_BODY")
@@ -52,34 +55,30 @@ docker compose exec -T -e LLDAP_USER_PASSWORD="$SVC_AUTHELIA_PASSWORD" lldap \
     --admin-password "$LLDAP_LDAP_USER_PASS" -u svc-authelia >/dev/null \
     && say "password set for svc-authelia"
 
-# 3b. Create the first human account: its email must equal ADMIN_EMAIL, otherwise Grist's
-# install-admin gate (InstallAdmin.ts:72-75 compares the request user's loginEmail with
-# GRIST_ADMIN_EMAIL) never lets anybody in.
+# 3b. Create the first human account. Its email is GRIST_ADMIN_EMAIL; the login name is the
+# LLDAP uid, so Grist users sign in with "grist-admin", not with the email.
+# It is deliberately NOT put in lldap_admin: LLDAP's own `admin` account stays the only
+# directory administrator, and this user is only the Grist administrator.
 FIRST_PASSWORD=$(sed -n 's/^FIRST_USER_PASSWORD=//p' lldap.env)
 if [ -z "$FIRST_PASSWORD" ]; then
     FIRST_PASSWORD=$(b64 18)
     printf 'FIRST_USER_PASSWORD=%s\n' "$FIRST_PASSWORD" >> lldap.env
     chmod 600 lldap.env
 fi
-ADMIN_EMAIL=${ADMIN_EMAIL:-$(sed -n 's/^GRIST_ADMIN_EMAIL=//p' grist.env)}
 FIRST_BODY=$(cat <<JSON
-{"query":"mutation(\$u:CreateUserInput!){createUser(user:\$u){id}}","variables":{"u":{"id":"grist-admin","email":"$ADMIN_EMAIL","displayName":"Grist admin"}}}
+{"query":"mutation(\$u:CreateUserInput!){createUser(user:\$u){id}}","variables":{"u":{"id":"grist-admin","email":"$GRIST_ADMIN_EMAIL","displayName":"Grist admin"}}}
 JSON
 )
 RESULT=$(gql "$FIRST_BODY")
 case "$RESULT" in
     *already\ exists*|*"duplicate key"*) say "user grist-admin already exists" ;;
-    *'"createUser"'*) say "created user grist-admin ($ADMIN_EMAIL)" ;;
+    *'"createUser"'*) say "created user grist-admin ($GRIST_ADMIN_EMAIL), not a directory administrator" ;;
     *) say "could not create grist-admin: $RESULT"; exit 1 ;;
 esac
 docker compose exec -T -e LLDAP_USER_PASSWORD="$FIRST_PASSWORD" lldap \
     /app/lldap_set_password -b http://localhost:17170 --admin-username admin \
     --admin-password "$LLDAP_LDAP_USER_PASS" -u grist-admin >/dev/null \
     && say "password set for grist-admin (FIRST_USER_PASSWORD in lldap.env)"
-ADMIN_GROUP=$(gql '{"query":"{groups{id displayName}}"}' | sed -n 's/.*"id":\([0-9]*\),"displayName":"lldap_admin".*/\1/p')
-[ -n "$ADMIN_GROUP" ] || ADMIN_GROUP=1
-gql "{\"query\":\"mutation{addUserToGroup(userId:\\\"grist-admin\\\",groupId:$ADMIN_GROUP){ok}}\"}" >/dev/null \
-    && say "grist-admin added to lldap_admin (group $ADMIN_GROUP)"
 
 # 4. Put it in the read-only group so Authelia can enumerate users and groups.
 GROUP_ID=$(gql '{"query":"{groups{id displayName}}"}' | sed -n 's/.*"id":\([0-9]*\),"displayName":"lldap_strict_readonly".*/\1/p')
@@ -88,4 +87,4 @@ gql "{\"query\":\"mutation{addUserToGroup(userId:\\\"svc-authelia\\\",groupId:$G
     && say "svc-authelia added to lldap_strict_readonly (group $GROUP_ID)"
 say ""
 say "Now create your own people at http://127.0.0.1:$WEB (admin password: LLDAP_LDAP_USER_PASS in lldap.env),"
-say "and add them to the group lldap_admin. Then: docker compose up -d"
+say "They need no LLDAP group to log in; lldap_admin is only for directory administrators (like admin). Then: docker compose up -d"

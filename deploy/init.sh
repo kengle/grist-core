@@ -5,18 +5,21 @@ set -eu
 
 cd "$(dirname "$0")"
 
-GRIST_DOMAIN=${GRIST_DOMAIN:?set GRIST_DOMAIN, for example g.example.org}
+GRIST_SITE_DOMAIN=${GRIST_SITE_DOMAIN:?GRIST_SITE_DOMAIN must be set explicitly, for example g.example.org}
 PUBLIC_PORT=${PUBLIC_PORT:-443}
 LDAP_PORT=${LDAP_PORT:-3890}
 LLDAP_WEB_PORT=${LLDAP_WEB_PORT:-17170}
-BASE_DN=${BASE_DN:-dc=$(printf '%s' "${MAIL_DOMAIN:-$GRIST_DOMAIN}" | sed 's/\./,dc=/g')}
 GRIST_IMAGE=${GRIST_IMAGE:-grist-merged:local}
-MAIL_DOMAIN=${MAIL_DOMAIN:-$(printf '%s' "$GRIST_DOMAIN" | cut -s -d. -f2-)}
-[ -n "$MAIL_DOMAIN" ] || MAIL_DOMAIN=$GRIST_DOMAIN
-ADMIN_EMAIL=${ADMIN_EMAIL:-grist-admin@$MAIL_DOMAIN}
+GRIST_ADMIN_EMAIL=${GRIST_ADMIN_EMAIL:?GRIST_ADMIN_EMAIL must be set explicitly, for example you@example.com}
+case "$GRIST_ADMIN_EMAIL" in
+    *@*) ;;
+    *) echo "GRIST_ADMIN_EMAIL must contain an @domain: $GRIST_ADMIN_EMAIL"; exit 1 ;;
+esac
+SERVICE_EMAIL_DOMAIN=${SERVICE_EMAIL_DOMAIN:-$(printf '%s' "$GRIST_ADMIN_EMAIL" | sed 's/.*@//')}
+BASE_DN=${BASE_DN:-dc=$(printf '%s' "$SERVICE_EMAIL_DOMAIN" | sed 's/\./,dc=/g')}
 DATA_ROOT=${DATA_ROOT:-./state}
 # 443 is implicit in an https URL; any other port has to be spelled out.
-PUBLIC_URL="https://$GRIST_DOMAIN"
+PUBLIC_URL="https://$GRIST_SITE_DOMAIN"
 [ "$PUBLIC_PORT" = "443" ] || PUBLIC_URL="$PUBLIC_URL:$PUBLIC_PORT"
 BOOT_KEY=${BOOT_KEY:-$(openssl rand -hex 12)}
 
@@ -41,7 +44,7 @@ chmod 700 "$DATA_ROOT/authelia" 2>/dev/null || true
 
 # Compose-level settings.
 write_new .env <<EOF
-GRIST_DOMAIN=$GRIST_DOMAIN
+GRIST_SITE_DOMAIN=$GRIST_SITE_DOMAIN
 PUBLIC_PORT=$PUBLIC_PORT
 LDAP_PORT=$LDAP_PORT
 LLDAP_WEB_PORT=$LLDAP_WEB_PORT
@@ -65,8 +68,8 @@ EOF
 GRIST_SESSION=$(hex 32)
 write_new grist.env <<EOF
 GRIST_SESSION_SECRET=$GRIST_SESSION
-GRIST_DEFAULT_EMAIL=$ADMIN_EMAIL
-GRIST_ADMIN_EMAIL=$ADMIN_EMAIL
+GRIST_DEFAULT_EMAIL=$GRIST_ADMIN_EMAIL
+GRIST_ADMIN_EMAIL=$GRIST_ADMIN_EMAIL
 GRIST_BOOT_KEY=$BOOT_KEY
 GRIST_SANDBOX_FLAVOR=gvisor
 GRIST_ORG_IN_PATH=true
@@ -118,7 +121,7 @@ else
     chmod 600 "$DATA_ROOT/authelia/oidc_signing_key.pem"
     sed \
         -e "s|__BASE_DN__|$BASE_DN|g" \
-        -e "s|__GRIST_HOST__|$GRIST_DOMAIN|g" \
+        -e "s|__GRIST_HOST__|$GRIST_SITE_DOMAIN|g" \
         -e "s|__GRIST_PORT__|$PUBLIC_PORT|g" \
         -e "s|__JWT_SECRET__|$JWT_SECRET|g" \
         -e "s|__SESSION_SECRET__|$SESSION_SECRET|g" \
@@ -140,7 +143,7 @@ else
 fi
 
 say ""
-say "NOTE: ADMIN_EMAIL was derived from GRIST_DOMAIN: $ADMIN_EMAIL" 2>/dev/null || true
+say "NOTE: GRIST_ADMIN_EMAIL was derived from GRIST_SITE_DOMAIN: $GRIST_ADMIN_EMAIL" 2>/dev/null || true
 say ""
 say "Next steps:"
 say "  1. docker compose up -d --build"

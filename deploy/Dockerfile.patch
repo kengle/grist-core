@@ -1,0 +1,28 @@
+# Fork-local preview image: the previous build of this repo, with freshly compiled
+# JavaScript and Python sandbox code copied in. Nothing else changes, so no base image
+# has to be pulled (the Dockerfile's node:22-trixie, python:3.11-slim-trixie and
+# gvisor-unprivileged:buster are all missing from this machine).
+#
+# It exists to look at upstream's changes without a full rebuild. It is NOT a
+# replacement for `docker compose up -d --build`: the Debian layer, node_modules and
+# the MCP bridge inside are still the old ones, and the tag is not what the compose
+# file builds by default.
+#
+# Build it from a staging directory holding the compiled output, so the repository's
+# own .dockerignore (which excludes _build) does not apply:
+#
+#   cd <repo root> && buildtools/build.sh prod      # with ext/ moved aside, see README
+#   rm -rf /tmp/grist-patch && mkdir -p /tmp/grist-patch/sandbox
+#   cp -a _build static /tmp/grist-patch/
+#   rm -f /tmp/grist-patch/static/test.bundle.js*
+#   cp -a sandbox/grist /tmp/grist-patch/sandbox/
+#   docker buildx build --load -t grist-merged:<commit> -f deploy/Dockerfile.patch /tmp/grist-patch
+#
+# Then set GRIST_IMAGE=grist-merged:<commit> in deploy/.env and run
+# `docker compose up -d grist`. To roll back, set GRIST_IMAGE back to grist-merged:local
+# and recreate the container the same way.
+FROM grist-merged:local
+
+COPY _build /grist/_build
+COPY static /grist/static
+COPY sandbox/grist /grist/sandbox/grist

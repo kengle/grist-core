@@ -36,8 +36,9 @@ archive, `tar -czf backup.tgz -C . state`; point `DATA_ROOT` elsewhere to move i
 directories separately is unsafe: `home.sqlite3`, `users.db` and the documents must come from the same
 batch. Keep `.env`, `grist.env`, `lldap.env` out of git (they hold secrets).
 
-Upgrading: `git fetch origin && git checkout umain && git merge --ff-only origin/main && git checkout main
-&& git merge umain`, then `docker compose up -d --build`; `deploy/` holds configuration only.
+Upgrading: `git fetch upstream && git checkout upmain && git merge --ff-only upstream/main
+git checkout main && git merge upmain && git push origin main upmain`, then `docker compose up -d --build`;
+`deploy/` holds configuration only.
 
 Traps we hit — keep them in mind:
 - The Authelia lifespan key is `authorize_code`, not `authorization_code`; the wrong one stops startup.

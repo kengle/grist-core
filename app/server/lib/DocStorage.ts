@@ -929,6 +929,22 @@ export class DocStorage implements ISQLiteDB, OnDemandStorage {
   }
 
   /**
+   * Returns the total number of rows in a given table
+   */
+  public async getRowCount(tableId: string): Promise<number> {
+    const row = await this.get(`SELECT COUNT(*) AS count FROM ${quoteIdent(tableId)}`);
+    return row?.count ?? 0;
+  }
+
+  /**
+   * Returns the row ids of a given table
+   */
+  public async getRowIds(tableId: string): Promise<number[]> {
+    const rows = await this.all(`SELECT id FROM ${quoteIdent(tableId)}`);
+    return rows.map(row => row.id);
+  }
+
+  /**
    * Look up Grist type of column.
    */
   public getColumnType(tableId: string, colId: string): string | undefined {

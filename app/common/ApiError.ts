@@ -43,7 +43,23 @@ export type ApiErrorCode =
   "FormNotFound" |
   "FormNotPublished" |
   "ContextLimitExceeded" |
-  "RestartUnavailable";
+  "RestartUnavailable" |
+  "SyncNotOwned" |
+  "SyncSourceDocNotFound" |
+  "SyncOrphaned" |
+  "SyncConfigMismatch" |
+  "SyncAccessRestricted" |
+  "SyncNoDestinationAccess" |
+  "SyncSourceError" |
+  "SyncTablesNotFound" |
+  "SyncNotAllowed" |
+  "SyncChainedSource" |
+  "SyncChainedDestination" |
+  "SyncFormulaColumns" |
+  "SyncReferenceColumns" |
+  "SyncAttachmentColumns" |
+  "SyncRowLimitExceeded" |
+  "SyncDeleted";
 
 /**
  * An error with an http status code.

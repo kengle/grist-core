@@ -14,7 +14,6 @@ import { buildNotifyMenuButton } from "app/client/ui/NotifyUI";
 import { manageTeamUsersApp } from "app/client/ui/OpenUserManager";
 import { UpgradeButton } from "app/client/ui/ProductUpgrades";
 import { buildShareMenuButton } from "app/client/ui/ShareMenu";
-import { SupportGristButton } from "app/client/ui/SupportGristButton";
 import { hoverTooltip } from "app/client/ui/tooltips";
 import { cssHoverCircle, cssTopBarBtn } from "app/client/ui/TopBarCss";
 import { docBreadcrumbs } from "app/client/ui2018/breadcrumbs";
@@ -36,7 +35,7 @@ export function createTopBarHome(appModel: AppModel, onSave?: (personal: boolean
     cssFlexSpace(),
     cssButtons(
       dom.create(UpgradeButton, appModel),
-      dom.create(SupportGristButton, appModel),
+      // [fork] No "Support Grist" button in the top bar.
       (appModel.isTeamSite && roles.canEditAccess(appModel.currentOrg?.access || null) ?
         [
           basicButton(

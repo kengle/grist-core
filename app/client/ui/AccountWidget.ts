@@ -169,7 +169,7 @@ export class AccountWidget extends Disposable {
       this._maybeBuildBillingPageMenuItem(),
       this._maybeBuildActivationPageMenuItem(),
       this._maybeBuildAdminPanelMenuItem(),
-      this._maybeBuildSupportGristButton(),
+      // [fork] No "Support Grist" entry in the user menu.
 
       // TODO: Uncomment when team audit logs are ready to use.
       // this._maybeBuildAuditLogsMenuItem(),
@@ -274,17 +274,7 @@ export class AccountWidget extends Disposable {
     }
   }
 
-  private _maybeBuildSupportGristButton() {
-    const { deploymentType } = getGristConfig();
-    const isEnabled = (deploymentType === "core") && isFeatureEnabled("supportGrist");
-    if (isEnabled) {
-      return menuItemLink(t("Support Grist"), " 💛",
-        { href: commonUrls.githubSponsorGristLabs, target: "_blank" },
-        testId("usermenu-support-grist"),
-      );
-    }
-  }
-
+  // [fork] The "Support Grist" entry in the user menu is gone; see the menu above.
   // TODO: Uncomment when team audit logs are ready to use.
   // private _maybeBuildAuditLogsMenuItem() {
   //   const { deploymentType } = getGristConfig();

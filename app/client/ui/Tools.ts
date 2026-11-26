@@ -10,8 +10,6 @@ import { createAutomationsPageEntry } from "app/client/ui/AutomationsPageEntry";
 import { showExampleCard } from "app/client/ui/ExampleCard";
 import { buildExamples } from "app/client/ui/ExampleInfo";
 import {
-  createAccessibilityTools,
-  createHelpTools,
   cssChangeDot,
   cssLinkText,
   cssMenuTrigger,
@@ -199,8 +197,7 @@ export function tools(owner: Disposable, gristDoc: GristDoc, leftPanelOpen: Obse
         ),
       ),
     ),
-    createHelpTools(),
-    createAccessibilityTools(docPageModel.appModel),
+    // [fork] Help Center and Accessibility are not shown in the document left panel.
   );
 }
 

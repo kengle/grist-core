@@ -13,8 +13,6 @@ import { addNewButton, cssAddNewButton } from "app/client/ui/AddNewButton";
 import { getAdminPanelName } from "app/client/ui/AdminPanelName";
 import { buildHomeGristImportMenuItem } from "app/client/ui/GristImportEntryPoints";
 import {
-  createAccessibilityTools,
-  createHelpTools,
   cssHomeTools,
   cssLeftPanel,
   cssLinkText,
@@ -28,7 +26,6 @@ import {
   cssSectionHeaderText,
 } from "app/client/ui/LeftPanelCommon";
 import { newDocMethods } from "app/client/ui/NewDocMethods";
-import { createVideoTourToolsButton } from "app/client/ui/OpenVideoTour";
 import { transientInput } from "app/client/ui/transientInput";
 import { createVersionFooter } from "app/client/ui/VersionFooter";
 import { testId, theme } from "app/client/ui2018/cssVars";
@@ -177,7 +174,7 @@ export function createHomeLeftPane(leftPanelOpen: Observable<boolean>, home: Hom
             testId("dm-basic-tutorial"),
           ),
         ),
-        createVideoTourToolsButton(),
+        // [fork] Video Tour, Help Center and Accessibility are not shown in this pane.
         (home.app.isInstallAdmin() && deploymentType !== "electron" ?
           cssPageEntry(
             cssPageLink(cssPageIcon("Settings"), cssLinkText(getAdminPanelName()),
@@ -186,8 +183,6 @@ export function createHomeLeftPane(leftPanelOpen: Observable<boolean>, home: Hom
             ),
           ) : null
         ),
-        createHelpTools(),
-        createAccessibilityTools(home.app),
         (commonUrls.termsOfService ?
           cssPageEntry(
             cssPageLink(cssPageIcon("Memo"), cssLinkText(t("Terms of service")),

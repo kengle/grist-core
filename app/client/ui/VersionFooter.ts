@@ -26,23 +26,23 @@ export function createVersionFooter(panelOpen: Observable<boolean>): DomContents
   const { deploymentType } = getGristConfig();
   const isCommunity = !isFullEditionDeployment(deploymentType);
 
+  // [fork] No edition banner: the community edition footer ("Grist Community edition" /
+  // "No official support") does not render. The full edition keeps its logo and version.
+  if (isCommunity) {
+    return null;
+  }
+
   // Show the version without any build suffix. (The hover popup shows the full version.)
   const shortVersion = version.version.split("-")[0];
 
   return cssVersionFooter(
     cssVersionFooter.cls("-collapsed", use => !use(panelOpen)),
-    cssVersionFooter.cls("-community", isCommunity),
     cssLogo("GristLogo"),
     cssFooterText(
-      isCommunity ?
-        [
-          cssFooterTitle(t("Grist Community edition")),
-          cssFooterSupport(t("No official support")),
-        ] :
-        cssFooterTitle(
-          "Grist ",
-          cssFooterVersion(`v${shortVersion}`),
-        ),
+      cssFooterTitle(
+        "Grist ",
+        cssFooterVersion(`v${shortVersion}`),
+      ),
     ),
     hoverTooltip(() => buildVersionPopup(), {
       closeDelay: 220,
@@ -159,14 +159,6 @@ const cssFooterTitle = styled("span", `
 const cssFooterVersion = styled("span", `
   font-weight: 400;
   color: ${components.lightText};
-`);
-
-const cssFooterSupport = styled("span", `
-  font-size: ${vars.xsmallFontSize};
-  color: ${tokens.warning};
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
 `);
 
 const cssVersionPopup = styled("div", `

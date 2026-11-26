@@ -3,7 +3,6 @@ import { HomeModel } from "app/client/models/HomeModel";
 import { productPill } from "app/client/ui/AppHeader";
 import { buildHomeAssistantComposer, hasHomeAssistantComposer } from "app/client/ui/assistant/HomeAssistant";
 import * as css from "app/client/ui/DocMenuCss";
-import { buildLearningResources, cssCards } from "app/client/ui/HomeLearningResources";
 import { buildNewDocumentBlock, cssNewDocBlock } from "app/client/ui/HomeNewDocBlock";
 import { buildSectionHead, cssSectionBody, reveal, revealed } from "app/client/ui/HomeSection";
 import { isNarrowScreenObs, testId, theme, vars } from "app/client/ui2018/cssVars";
@@ -115,10 +114,7 @@ function buildIntroBody(homeModel: HomeModel, animate: boolean): DomContents {
         animate ? countIntroImpression(homeModel) : null,
         testId("intro-create-section"),
       ),
-      cssLearnSection(
-        dom.create(buildLearningResources, { homeModel, showIntro: animate }),
-        testId("intro-learn-section"),
-      ),
+      // [fork] No "Learn Grist" card column.
     );
   });
 }
@@ -188,23 +184,6 @@ const cssCreateSection = styled("div", `
     flex: 0 1 320px;
     display: flex;
     flex-direction: column;
-  }
-`);
-
-const cssLearnSection = styled("div", `
-  flex: 1 1 412px;
-  min-width: 0;
-  container-type: inline-size;
-  display: flex;
-  flex-direction: column;
-
-  .${cssIntroFlow.className}-compact & .${cssCards.className} {
-    flex: none;
-  }
-  @container (min-width: 800px) {
-    .${cssIntroFlow.className}-compact & .${cssCards.className} {
-      grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-    }
   }
 `);
 

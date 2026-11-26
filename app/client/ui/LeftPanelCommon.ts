@@ -92,8 +92,8 @@ export function leftPanelBasic(appModel: AppModel, panelOpen: Observable<boolean
       cssTools(
         cssTools.cls("-collapsed", use => !use(panelOpen)),
         cssSpacer(),
-        createHelpTools(),
-        createAccessibilityTools(appModel),
+        // [fork] Help Center and Accessibility are not shown in this basic left panel
+        // (account, site settings, team settings, audit logs, error pages).
       ),
     ),
     createVersionFooter(panelOpen),

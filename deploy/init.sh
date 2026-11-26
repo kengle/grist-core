@@ -82,7 +82,7 @@ GRIST_IN_SERVICE=true
 GRIST_DATA_DIR=/persist/docs
 GRIST_INST_DIR=/persist
 GRIST_SESSION_COOKIE=grist_core
-GRIST_ALLOW_AUTOMATIC_VERSION_CHECKING=true
+GRIST_ALLOW_AUTOMATIC_VERSION_CHECKING=false
 GRIST_EXT_FULL_EDITION_BASE_URL=https://grist-static.com/grist-full-edition
 GVISOR_FLAGS=-unprivileged -ignore-cgroups
 NODE_OPTIONS=--no-deprecation --disable-proto=delete

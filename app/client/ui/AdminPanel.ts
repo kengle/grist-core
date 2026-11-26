@@ -1113,17 +1113,6 @@ in the future as session IDs generated since v1.1.16 are inherently cryptographi
       }
     });
 
-    const upperCheckNowVisible = Computed.create(owner, (use) => {
-      switch (use(state)) {
-        case State.CHECKING:
-        case State.CURRENT:
-        case State.AVAILABLE:
-          return false;
-        default:
-          return true;
-      }
-    });
-
     return SectionItem({
       id: "updates",
       name: t("Updates"),
@@ -1134,22 +1123,12 @@ in the future as session IDs generated since v1.1.16 are inherently cryptographi
             return null;
           }
 
-          if (use(upperCheckNowVisible)) {
-            return basicButton(
-              t("Check now"),
-              dom.on("click", actions.checkForUpdates),
-              testId("admin-panel-updates-upper-check-now"),
-            );
-          }
-
-          if (use(latestVersionAvailable)) {
-            return cssValueLabel(
-              `Version ${use(latestVersionAvailable)?.version}`,
-              testId("admin-panel-updates-version"),
-            );
-          }
-
-          throw new Error("Invalid state");
+          // [fork] No "Check now" button: this fork does not offer version checks here.
+          const latest = use(latestVersionAvailable);
+          return latest ? cssValueLabel(
+            `Version ${latest.version}`,
+            testId("admin-panel-updates-version"),
+          ) : null;
         }),
       ),
       expandedContent: dom("div",
@@ -1167,17 +1146,7 @@ in the future as session IDs generated since v1.1.16 are inherently cryptographi
             // Format date in local format.
             cssGrayed(`(${new Date(latest.dateChecked).toLocaleString()})`),
           ),
-          // `Check now` button, only shown when auto checks are enabled and we are not in the
-          // middle of checking. Otherwise the button is shown in the summary row, and there is
-          // no need to duplicate it.
-          dom.maybe(use => !use(upperCheckNowVisible), () => [
-            cssCheckNowButton(
-              t("Check now"),
-              testId("admin-panel-updates-lower-check-now"),
-              dom.on("click", actions.checkForUpdates),
-              dom.prop("disabled", use => use(state) === State.CHECKING),
-            ),
-          ]),
+          // [fork] No "Check now" button.
         )),
         dom.domComputed(allowAutomaticVersionChecking, allowAutomaticChecks =>
           allowAutomaticChecks ?
@@ -1497,12 +1466,6 @@ const cssExpandedContent = styled("div", `
 
 const cssValueButton = styled("div", `
   height: 30px;
-`);
-
-const cssCheckNowButton = styled(basicButton, `
-  &-hidden {
-    visibility: hidden;
-  }
 `);
 
 const cssGrayed = styled("span", `
